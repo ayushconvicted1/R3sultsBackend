@@ -49,6 +49,7 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/mobile', require('./routes/mobile'));
 app.use('/api/weather', require('./routes/weather'));
 app.use('/api/upload', require('./routes/upload'));
+app.use('/api/disasters', require('./routes/disaster'));
 
 // ─── Dev Endpoints ───
 const prisma = require('./lib/prisma');

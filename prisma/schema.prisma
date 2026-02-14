@@ -504,3 +504,36 @@ model DashboardVolunteer {
   @@index([availability], map: "idx_dashboard_volunteers_availability")
   @@map("dashboard_volunteers")
 }
+
+model Disaster {
+  id           String   @id
+  source       String
+  type         String
+  title        String
+  description  String   @db.Text
+  instructions String?  @db.Text
+  severity     String
+  startTime    DateTime
+  endTime      DateTime
+  state        String
+  areaDesc     String
+  lat          Float
+  lng          Float
+  url          String
+  raw          Json
+  fetchedAt    DateTime @default(now())
+
+  @@index([source])
+  @@index([type])
+  @@index([state])
+  @@index([severity])
+  @@index([fetchedAt])
+  @@map("disasters")
+}
+
+model CacheMetadata {
+  id        String   @id @default("disasters")
+  lastFetch DateTime @default(now())
+
+  @@map("cache_metadata")
+}

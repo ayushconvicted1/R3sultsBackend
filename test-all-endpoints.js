@@ -838,6 +838,38 @@ async function testUpload() {
 }
 
 // ════════════════════════════════════════════
+// DISASTERS MODULE (6 endpoints)
+// ════════════════════════════════════════════
+async function testDisasters() {
+  console.log('\n═══ DISASTERS MODULE ═══');
+  const M = 'Disasters';
+
+  // Get all disasters
+  const all = await req('GET', '/disasters');
+  test('Get All Disasters', all.status, 200, all.data, ['success', 'data.total', 'data.count', 'data.sources', 'data.items'], M);
+
+  // Get disasters with type filter
+  const typed = await req('GET', '/disasters?type=earthquake');
+  test('Get Disasters by Type', typed.status, 200, typed.data, ['success', 'data.items'], M);
+
+  // Get disasters with limit
+  const limited = await req('GET', '/disasters?limit=5');
+  test('Get Disasters with Limit', limited.status, 200, limited.data, ['success', 'data.items'], M);
+
+  // Get NWS alerts
+  const nws = await req('GET', '/disasters/nws');
+  test('Get NWS Disasters', nws.status, 200, nws.data, ['success', 'data.items'], M);
+
+  // Get earthquakes
+  const quakes = await req('GET', '/disasters/earthquakes');
+  test('Get Earthquakes', quakes.status, 200, quakes.data, ['success', 'data.items'], M);
+
+  // Get wildfires
+  const fires = await req('GET', '/disasters/wildfires');
+  test('Get Wildfires', fires.status, 200, fires.data, ['success', 'data.items'], M);
+}
+
+// ════════════════════════════════════════════
 // DEV MODULE (1 endpoint)
 // ════════════════════════════════════════════
 async function testDev() {
@@ -923,6 +955,7 @@ async function main() {
   await testMobile();
   await testWeather();
   await testUpload();
+  await testDisasters();
   await testDev();
   await testEdgeCases();
   await cleanup();
