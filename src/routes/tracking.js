@@ -1,10 +1,13 @@
 const router = require('express').Router();
 const { body } = require('express-validator');
 const validate = require('../middleware/validate');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, requireRole } = require('../middleware/auth');
 const tracking = require('../controllers/trackingController');
 
 router.use(authenticate);
+
+// Admin-only: get all user locations
+router.get('/location/all', requireRole('ADMIN', 'SUPER_ADMIN'), tracking.getAllLocations);
 
 router.post('/location', validate([
   body('latitude').isFloat(),

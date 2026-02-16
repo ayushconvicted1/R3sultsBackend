@@ -277,6 +277,47 @@ exports.updateTrackingSettings = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+/**
+ * Get locations for all users (admin only)
+ * GET /api/tracking/location/all
+ */
+exports.getAllLocations = async (req, res, next) => {
+  try {
+    const locations = await prisma.userLocation.findMany({
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            phoneNumber: true,
+            email: true,
+            status: true,
+            profilePictureUrl: true,
+            isActive: true,
+          },
+        },
+      },
+    });
+
+    res.json({
+      success: true,
+      data: {
+        locations: locations.map(loc => ({
+          userId: loc.userId,
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+          accuracy: loc.accuracy,
+          updatedAt: loc.updatedAt,
+          user: loc.user,
+        })),
+        total: locations.length,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 function haversineDistance(lat1, lon1, lat2, lon2) {
   const R = 6371000;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
