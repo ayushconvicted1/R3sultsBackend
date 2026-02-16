@@ -3,12 +3,11 @@ const { body } = require('express-validator');
 const validate = require('../middleware/validate');
 const { authenticate } = require('../middleware/auth');
 const user = require('../controllers/userController');
+const { upload } = require('../middleware/upload');
 
 router.use(authenticate);
 
 router.get('/profile', user.getProfile);
-
-const { upload } = require('../middleware/upload');
 
 router.patch('/profile', [
   upload.single('file'), 
@@ -50,7 +49,6 @@ router.patch('/fcm-token', user.updateFcmToken);
 
 // ─── Property Routes ───
 const property = require('../controllers/propertyController');
-const { upload } = require('../middleware/upload');
 
 router.get('/property', property.getProperty);
 router.patch('/property', property.updateProperty);
