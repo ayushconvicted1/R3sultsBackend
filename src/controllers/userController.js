@@ -338,6 +338,18 @@ exports.markUsersUnverifiedInRadius = async (req, res, next) => {
              );
         }
         
+        // 5. Create persistent notification records
+        const notificationMessage = message || 'You are in an affected area. Please mark your status as Safe or Unsafe.';
+        await prisma.notification.createMany({
+          data: impactedUserIds.map(userId => ({
+            userId,
+            title: 'Status Update Request',
+            body: notificationMessage,
+            type: 'status_update_request',
+            data: { type: 'STATUS_UPDATE_REQUEST' },
+          })),
+        });
+
         res.json({ 
             success: true, 
             message: `Updated ${impactedUserIds.length} users to Unverified. Notification sent to ${tokens.length} devices.`, 
