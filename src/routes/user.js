@@ -8,10 +8,15 @@ router.use(authenticate);
 
 router.get('/profile', user.getProfile);
 
-router.patch('/profile', validate([
-  body('fullName').optional().notEmpty(),
-  body('gender').optional().isIn(['male', 'female', 'other']),
-]), user.updateProfile);
+const { upload } = require('../middleware/upload');
+
+router.patch('/profile', [
+  upload.single('file'), 
+  validate([
+    body('fullName').optional().notEmpty(),
+    body('gender').optional().isIn(['male', 'female', 'other']),
+  ])
+], user.updateProfile);
 
 router.patch('/address', user.updateAddress);
 

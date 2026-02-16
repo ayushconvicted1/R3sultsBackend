@@ -47,10 +47,24 @@ exports.updateProfile = async (req, res, next) => {
   try {
     const { fullName, dateOfBirth, gender, profilePictureUrl } = req.body;
     const data = {};
+    
+    // Handle text fields
     if (fullName !== undefined) data.fullName = fullName;
     if (dateOfBirth !== undefined) data.dateOfBirth = new Date(dateOfBirth);
     if (gender !== undefined) data.gender = gender;
+    
+    // Handle direct URL update (e.g. if sending string)
     if (profilePictureUrl !== undefined) data.profilePictureUrl = profilePictureUrl;
+
+    // Handle File Upload if present
+    if (req.file) {
+      // Assuming middleware/upload.js configures multer-s3 or similar and populates req.file.location or req.file.path
+      // If using Cloudinary/S3 via multer-storage-cloudinary/s3:
+      const fileUrl = req.file.location || req.file.path; 
+      if (fileUrl) {
+          data.profilePictureUrl = fileUrl;
+      }
+    }
 
     const user = await prisma.user.update({ where: { id: req.user.id }, data });
     res.json({ success: true, message: 'Profile updated successfully', data: { user: sanitizeUser(user) } });
