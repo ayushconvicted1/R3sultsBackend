@@ -43,6 +43,8 @@ exports.getProfile = async (req, res, next) => {
   }
 };
 
+const { uploadToCloudinary } = require('../middleware/upload');
+
 exports.updateProfile = async (req, res, next) => {
   try {
     const { fullName, dateOfBirth, gender, profilePictureUrl } = req.body;
@@ -58,11 +60,15 @@ exports.updateProfile = async (req, res, next) => {
 
     // Handle File Upload if present
     if (req.file) {
-      // Assuming middleware/upload.js configures multer-s3 or similar and populates req.file.location or req.file.path
-      // If using Cloudinary/S3 via multer-storage-cloudinary/s3:
-      const fileUrl = req.file.location || req.file.path; 
-      if (fileUrl) {
-          data.profilePictureUrl = fileUrl;
+      // Multer is using memory storage, so we have a buffer
+      const result = await uploadToCloudinary(req.file.buffer, {
+        folder: 'r3sults/profiles',
+        public_id: `user_${req.user.id}_profile`,
+        overwrite: true
+      });
+      
+      if (result && result.secure_url) {
+        data.profilePictureUrl = result.secure_url;
       }
     }
 
