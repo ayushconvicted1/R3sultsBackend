@@ -76,15 +76,30 @@ exports.getUserCurrentLocation = async (req, res, next) => {
       }
     } 
     
-    // 2. Check for implicit access (Family Group Admin -> Member)
+    // 2. Check for family group relationship (Bidirectional: Admin<->Member, Member<->Member)
     if (!hasAccess) {
-      const groupMember = await prisma.member.findFirst({
-        where: { 
-          userId: userId, 
-          group: { adminId: req.user.id } 
-        },
+      const commonGroup = await prisma.group.findFirst({
+        where: {
+          AND: [
+            // Requester is in the group (as Admin or Active Member)
+            {
+              OR: [
+                { adminId: req.user.id },
+                { members: { some: { userId: req.user.id, isActive: true } } }
+              ]
+            },
+            // Target user is in the group (as Admin or Active Member)
+            {
+              OR: [
+                { adminId: userId },
+                { members: { some: { userId: userId, isActive: true } } }
+              ]
+            }
+          ]
+        }
       });
-      if (groupMember) {
+
+      if (commonGroup) {
         hasAccess = true;
       }
     }
