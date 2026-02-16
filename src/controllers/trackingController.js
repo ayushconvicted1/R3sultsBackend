@@ -17,9 +17,10 @@ exports.updateLocation = async (req, res, next) => {
       create: { userId, latitude, longitude, accuracy, altitude, speed, heading },
     });
 
-    await prisma.locationHistory.create({
-      data: { userId, latitude, longitude, accuracy, altitude, speed, heading },
-    });
+    // Optimization: Disable LocationHistory storage to prevent table bloat
+    // await prisma.locationHistory.create({
+    //   data: { userId, latitude, longitude, accuracy, altitude, speed, heading },
+    // });
 
     // Check geofence events
     const geofenceEvents = [];
