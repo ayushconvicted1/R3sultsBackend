@@ -129,6 +129,8 @@ model User {
   stripeCustomerId       String?
   subscriptionEndsAt     DateTime?
   subscriptionId         String?
+  status                 UserStatus    @default(UNVERIFIED)
+  fcmToken               String?
 
   groups               Group[]           @relation("GroupAdmin")
   members              Member[]          @relation("MemberUser")
@@ -144,7 +146,14 @@ model User {
   @@index([email])
   @@index([authProvider, providerId])
   @@index([planId])
+  @@index([status])
   @@map("users")
+}
+
+enum UserStatus {
+  SAFE
+  UNSAFE
+  UNVERIFIED
 }
 
 model Vendor {

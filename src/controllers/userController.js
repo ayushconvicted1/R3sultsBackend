@@ -1,5 +1,27 @@
 const bcrypt = require('bcryptjs');
 const prisma = require('../lib/prisma');
+const fcm = require('../services/fcm');
+const { UserStatus } = require('@prisma/client'); // Assuming generated client has it, or just use strings if Enum issues.
+
+// Helper to calculate distance in meters
+function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
+  var R = 6371; // Radius of the earth in km
+  var dLat = deg2rad(lat2-lat1);  // deg2rad below
+  var dLon = deg2rad(lon2-lon1); 
+  var a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2)
+    ; 
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+  var d = R * c; // Distance in km
+  return d * 1000; // Distance in meters
+}
+
+function deg2rad(deg) {
+  return deg * (Math.PI/180)
+}
+
 
 const sanitizeUser = (user) => {
   const { passwordHash, otpCode, otpExpiresAt, otpAttempts, refreshToken, ...safe } = user;
@@ -207,3 +229,122 @@ exports.promoteToAdmin = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.updateStatus = async (req, res, next) => {
+  try {
+    const { status } = req.body;
+    
+    // Allow 'Safe', 'Unsafe', 'Unverified' (case insensitive handling or exact enum)
+    // Prisma Enum: SAFE, UNSAFE, UNVERIFIED
+    const validStatuses = ['SAFE', 'UNSAFE', 'UNVERIFIED'];
+    const normalizedStatus = status.toUpperCase();
+
+    if (!validStatuses.includes(normalizedStatus)) {
+        return res.status(400).json({ success: false, message: 'Invalid status' });
+    }
+
+    const user = await prisma.user.update({
+        where: { id: req.user.id },
+        data: { status: normalizedStatus }
+    });
+    
+    res.json({ success: true, message: 'Status updated successfully', data: { user: sanitizeUser(user) } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.markUsersUnverifiedInRadius = async (req, res, next) => {
+    try {
+        const { lat, lng, radius, message } = req.body; // radius in meters
+
+        if (!lat || !lng || !radius) {
+            return res.status(400).json({ success: false, message: 'Missing lat, lng, or radius' });
+        }
+
+        // 1. Find all active user locations
+        // Optimization: Use a bounding box first to limit JS calculation
+        // 1 degree lat ~ 111km. Radius is in meters.
+        // limit = radius / 111000 degrees roughly
+        const rDeg = radius / 111000;
+        
+        const candidateLocations = await prisma.userLocation.findMany({
+            where: {
+                latitude: { gte: lat - rDeg, lte: lat + rDeg },
+                longitude: { gte: lng - rDeg, lte: lng + rDeg },
+                isActive: true
+            },
+            include: { user: true }
+        });
+
+        const impactedUserIds = [];
+        const fcmTokens = [];
+
+        // 2. Filter exact distance
+        for (const loc of candidateLocations) {
+            const dist = getDistanceFromLatLonInM(lat, lng, loc.latitude, loc.longitude);
+            if (dist <= radius) {
+                impactedUserIds.push(loc.userId);
+            }
+        }
+        
+        if (impactedUserIds.length === 0) {
+            return res.json({ success: true, message: 'No users found in range', impactedCount: 0 });
+        }
+
+        // 3. Update status to UNVERIFIED for these users
+        await prisma.user.updateMany({
+            where: { id: { in: impactedUserIds } },
+            data: { status: 'UNVERIFIED' }
+        });
+
+        // 4. Send Notifications
+        const usersWithTokens = await prisma.user.findMany({
+            where: { 
+                id: { in: impactedUserIds },
+                fcmToken: { not: null } 
+            },
+            select: { id: true, fcmToken: true }
+        });
+        
+        const tokens = usersWithTokens.map(u => u.fcmToken);
+        
+        if (tokens.length > 0) {
+             await fcm.sendMulticastNotification(
+                tokens,
+                'Status Alert',
+                message || 'You are in an affected area. Please mark your status as Safe or Unsafe.',
+                { type: 'STATUS_UPDATE_REQUEST' }
+             );
+        }
+        
+        res.json({ 
+            success: true, 
+            message: `Updated ${impactedUserIds.length} users to Unverified. Notification sent to ${tokens.length} devices.`, 
+            impactedCount: impactedUserIds.length 
+        });
+
+    } catch (error) {
+        next(error);
+    }
+}
+
+exports.updateFcmToken = async (req, res, next) => {
+  try {
+    const { fcmToken } = req.body;
+    if (!fcmToken) {
+        return res.status(400).json({ success: false, message: 'Token required' });
+    }
+
+    await prisma.user.update({
+        where: { id: req.user.id },
+        data: { fcmToken }
+    });
+    
+    res.json({ success: true, message: 'FCM Token updated' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+

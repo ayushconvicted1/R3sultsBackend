@@ -37,7 +37,11 @@ router.patch('/username', validate([
 
 router.patch('/deactivate', user.deactivate);
 
+
 router.post('/promote-to-admin', user.promoteToAdmin);
+router.patch('/status', user.updateStatus);
+router.post('/admin/status-radius', user.markUsersUnverifiedInRadius);
+router.patch('/fcm-token', user.updateFcmToken);
 
 // ─── Property Routes ───
 const property = require('../controllers/propertyController');
