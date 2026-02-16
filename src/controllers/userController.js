@@ -153,3 +153,57 @@ exports.deactivate = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.promoteToAdmin = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    // Use a transaction to ensure atomicity
+    const user = await prisma.$transaction(async (prisma) => {
+      // 1. Promote User
+      const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: {
+          role: 'ADMIN',
+          planId: 'premium_plan', // Fake plan ID
+          isSubscriber: true,
+          planLimit: 10, // Assuming premium plan has higher limit
+        },
+      });
+
+      // 2. Check if Group exists
+      const existingGroup = await prisma.group.findFirst({
+        where: { adminId: userId },
+      });
+
+      if (!existingGroup) {
+        // 3. Create Group if not exists
+        await prisma.group.create({
+          data: {
+            name: `${updatedUser.fullName || 'My'} Family Group`,
+            adminId: userId,
+          },
+        });
+      }
+
+      // Fetch user with updated relations if needed, or just return updatedUser
+      // To match getProfile structure:
+      return await prisma.user.findUnique({
+          where: { id: userId },
+          include: {
+            groups: { include: { members: { include: { user: true } } } },
+            members: { include: { group: true } },
+          },
+        });
+    });
+
+    res.json({ 
+        success: true, 
+        message: 'Promoted to Admin successfully', 
+        data: { user: sanitizeUser(user) } 
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};

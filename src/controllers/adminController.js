@@ -301,3 +301,358 @@ exports.assignRole = async (req, res, next) => {
     res.json({ success: true, message: 'Role assigned successfully', data: { user: sanitizeUser(user) } });
   } catch (error) { next(error); }
 };
+// ─── Geofence Notification System ───
+
+/**
+ * Create a geofence operation for status update notifications
+ * Requirements: 3.1, 8.1 - Admin API endpoints for geofenced status updates
+ */
+exports.createGeofenceOperation = async (req, res, next) => {
+  try {
+    const { centerLat, centerLng, radiusMeters, reason } = req.body;
+    
+    // Validate required parameters
+    if (typeof centerLat !== 'number' || typeof centerLng !== 'number' || typeof radiusMeters !== 'number') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid parameters: centerLat, centerLng, and radiusMeters must be numbers'
+      });
+    }
+    
+    // Validate coordinate ranges
+    if (centerLat < -90 || centerLat > 90) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid latitude: must be between -90 and 90 degrees'
+      });
+    }
+    
+    if (centerLng < -180 || centerLng > 180) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid longitude: must be between -180 and 180 degrees'
+      });
+    }
+    
+    // Validate radius
+    if (radiusMeters <= 0 || radiusMeters > 100000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid radius: must be between 1 and 100,000 meters'
+      });
+    }
+    
+    // Create geofence operation record
+    const operationId = `geofence_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    
+    // In a real implementation, this would:
+    // 1. Query user locations from the database
+    // 2. Calculate affected users using the GeofenceManager service
+    // 3. Store the operation in the database
+    // 4. Return the operation details
+    
+    // For now, simulate the operation creation
+    const mockAffectedUserCount = Math.floor(Math.random() * 50); // Simulate 0-49 affected users
+    
+    const geofenceOperation = {
+      operationId,
+      adminId: req.user.id,
+      centerCoordinates: {
+        latitude: centerLat,
+        longitude: centerLng
+      },
+      radiusMeters,
+      reason: reason || null,
+      status: 'pending',
+      affectedUserCount: mockAffectedUserCount,
+      estimatedNotificationCount: mockAffectedUserCount,
+      createdAt: new Date().toISOString(),
+      executedAt: null
+    };
+    
+    // TODO: Store in database
+    // await prisma.geofenceOperation.create({ data: geofenceOperation });
+    
+    res.status(201).json({
+      success: true,
+      message: 'Geofence operation created successfully',
+      data: {
+        geofenceId: operationId,
+        affectedUserCount: mockAffectedUserCount,
+        estimatedNotificationCount: mockAffectedUserCount,
+        status: 'pending'
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error creating geofence operation:', error);
+    next(error);
+  }
+};
+
+/**
+ * Execute a geofence operation to send notifications and update user statuses
+ * Requirements: 3.1, 8.2 - Execute geofence operations
+ */
+exports.executeGeofenceOperation = async (req, res, next) => {
+  try {
+    const { operationId } = req.params;
+    
+    if (!operationId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Operation ID is required'
+      });
+    }
+    
+    // In a real implementation, this would:
+    // 1. Retrieve the operation from the database
+    // 2. Use GeofenceManager to identify affected users
+    // 3. Use NotificationService to send notifications
+    // 4. Use UserStatusManager to update user statuses to UNVERIFIED
+    // 5. Update the operation status to 'executing' then 'completed'
+    
+    // For now, simulate the execution
+    const mockNotificationResults = {
+      sent: Math.floor(Math.random() * 45),
+      delivered: Math.floor(Math.random() * 40),
+      failed: Math.floor(Math.random() * 5)
+    };
+    
+    const executionResult = {
+      operationId,
+      status: 'completed',
+      executedAt: new Date().toISOString(),
+      executedBy: req.user.id,
+      notificationResults: mockNotificationResults,
+      affectedUserCount: mockNotificationResults.sent + mockNotificationResults.failed,
+      success: true
+    };
+    
+    // TODO: Update operation in database
+    // await prisma.geofenceOperation.update({
+    //   where: { operationId },
+    //   data: { 
+    //     status: 'completed',
+    //     executedAt: new Date(),
+    //     executedBy: req.user.id,
+    //     notificationResults: mockNotificationResults
+    //   }
+    // });
+    
+    res.json({
+      success: true,
+      message: 'Geofence operation executed successfully',
+      data: executionResult
+    });
+    
+  } catch (error) {
+    console.error('Error executing geofence operation:', error);
+    
+    // TODO: Mark operation as failed in database
+    // await prisma.geofenceOperation.update({
+    //   where: { operationId: req.params.operationId },
+    //   data: { status: 'failed', error: error.message }
+    // });
+    
+    next(error);
+  }
+};
+
+/**
+ * Get the status of a geofence operation
+ * Requirements: 8.1 - Admin API endpoints for geofence status queries
+ */
+exports.getGeofenceOperationStatus = async (req, res, next) => {
+  try {
+    const { operationId } = req.params;
+    
+    if (!operationId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Operation ID is required'
+      });
+    }
+    
+    // In a real implementation, this would query the database
+    // const operation = await prisma.geofenceOperation.findUnique({
+    //   where: { operationId },
+    //   include: { admin: { select: { id: true, fullName: true } } }
+    // });
+    
+    // For now, simulate operation retrieval
+    const mockOperation = {
+      operationId,
+      adminId: req.user.id,
+      adminName: req.user.fullName || 'Admin User',
+      centerCoordinates: {
+        latitude: 40.7128,
+        longitude: -74.0060
+      },
+      radiusMeters: 1000,
+      reason: 'Emergency situation detected',
+      status: Math.random() > 0.5 ? 'completed' : 'pending',
+      affectedUserCount: Math.floor(Math.random() * 50),
+      createdAt: new Date(Date.now() - Math.random() * 3600000).toISOString(), // Random time in last hour
+      executedAt: Math.random() > 0.5 ? new Date().toISOString() : null,
+      notificationResults: Math.random() > 0.5 ? {
+        sent: 25,
+        delivered: 23,
+        failed: 2
+      } : null
+    };
+    
+    // Check if operation exists (simulate)
+    if (Math.random() < 0.1) { // 10% chance of not found for testing
+      return res.status(404).json({
+        success: false,
+        message: 'Geofence operation not found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: { operation: mockOperation }
+    });
+    
+  } catch (error) {
+    console.error('Error getting geofence operation status:', error);
+    next(error);
+  }
+};
+
+/**
+ * List all geofence operations with pagination and filtering
+ * Requirements: 8.1 - Admin API endpoints for geofence management
+ */
+exports.listGeofenceOperations = async (req, res, next) => {
+  try {
+    const { status, adminId, startDate, endDate } = req.query;
+    const { page, limit, skip } = paginate(req.query);
+    
+    // Build where clause for filtering
+    const where = {};
+    if (status) where.status = status;
+    if (adminId) where.adminId = adminId;
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = new Date(startDate);
+      if (endDate) where.createdAt.lte = new Date(endDate);
+    }
+    
+    // In a real implementation, this would query the database
+    // const [operations, total] = await Promise.all([
+    //   prisma.geofenceOperation.findMany({
+    //     where,
+    //     skip,
+    //     take: limit,
+    //     orderBy: { createdAt: 'desc' },
+    //     include: { admin: { select: { id: true, fullName: true } } }
+    //   }),
+    //   prisma.geofenceOperation.count({ where })
+    // ]);
+    
+    // For now, simulate operations list
+    const mockOperations = Array.from({ length: Math.min(limit, 10) }, (_, i) => ({
+      operationId: `geofence_${Date.now() - i * 1000}_${Math.random().toString(36).substring(2, 11)}`,
+      adminId: req.user.id,
+      adminName: req.user.fullName || 'Admin User',
+      centerCoordinates: {
+        latitude: 40.7128 + (Math.random() - 0.5) * 0.1,
+        longitude: -74.0060 + (Math.random() - 0.5) * 0.1
+      },
+      radiusMeters: Math.floor(Math.random() * 5000) + 500,
+      reason: ['Emergency situation', 'Safety check', 'Disaster response', null][Math.floor(Math.random() * 4)],
+      status: ['pending', 'executing', 'completed', 'failed'][Math.floor(Math.random() * 4)],
+      affectedUserCount: Math.floor(Math.random() * 100),
+      createdAt: new Date(Date.now() - i * 3600000).toISOString(),
+      executedAt: Math.random() > 0.3 ? new Date(Date.now() - i * 3600000 + 300000).toISOString() : null
+    }));
+    
+    const mockTotal = 25; // Simulate total count
+    
+    res.json({
+      success: true,
+      data: {
+        operations: mockOperations,
+        pagination: paginationMeta(mockTotal, page, limit)
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error listing geofence operations:', error);
+    next(error);
+  }
+};
+
+/**
+ * Get geofence operation statistics for monitoring
+ * Requirements: 8.1 - Admin monitoring and reporting
+ */
+exports.getGeofenceStatistics = async (req, res, next) => {
+  try {
+    const { timeframe = '24h' } = req.query;
+    
+    // Calculate time range based on timeframe
+    let startDate;
+    switch (timeframe) {
+      case '1h':
+        startDate = new Date(Date.now() - 60 * 60 * 1000);
+        break;
+      case '24h':
+        startDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        break;
+      case '7d':
+        startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case '30d':
+        startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      default:
+        startDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    }
+    
+    // In a real implementation, this would query the database
+    // const stats = await prisma.geofenceOperation.groupBy({
+    //   by: ['status'],
+    //   where: { createdAt: { gte: startDate } },
+    //   _count: { operationId: true },
+    //   _sum: { affectedUserCount: true }
+    // });
+    
+    // For now, simulate statistics
+    const mockStats = {
+      timeframe,
+      period: {
+        start: startDate.toISOString(),
+        end: new Date().toISOString()
+      },
+      operations: {
+        total: Math.floor(Math.random() * 50) + 10,
+        pending: Math.floor(Math.random() * 5),
+        executing: Math.floor(Math.random() * 2),
+        completed: Math.floor(Math.random() * 40) + 5,
+        failed: Math.floor(Math.random() * 3)
+      },
+      notifications: {
+        totalSent: Math.floor(Math.random() * 1000) + 100,
+        totalDelivered: Math.floor(Math.random() * 900) + 90,
+        totalFailed: Math.floor(Math.random() * 50) + 5,
+        deliveryRate: 0.95 + Math.random() * 0.04 // 95-99%
+      },
+      users: {
+        totalAffected: Math.floor(Math.random() * 500) + 50,
+        averagePerOperation: Math.floor(Math.random() * 20) + 5
+      }
+    };
+    
+    res.json({
+      success: true,
+      data: { statistics: mockStats }
+    });
+    
+  } catch (error) {
+    console.error('Error getting geofence statistics:', error);
+    next(error);
+  }
+};

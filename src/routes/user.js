@@ -37,6 +37,8 @@ router.patch('/username', validate([
 
 router.patch('/deactivate', user.deactivate);
 
+router.post('/promote-to-admin', user.promoteToAdmin);
+
 // ─── Property Routes ───
 const property = require('../controllers/propertyController');
 const { upload } = require('../middleware/upload');
