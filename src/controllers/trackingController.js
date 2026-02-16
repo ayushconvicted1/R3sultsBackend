@@ -62,15 +62,43 @@ exports.getCurrentLocation = async (req, res, next) => {
 exports.getUserCurrentLocation = async (req, res, next) => {
   try {
     const { userId } = req.params;
+    
+    let hasAccess = false;
+
+    // 1. Check for explicit sharing
     const sharing = await prisma.locationSharing.findFirst({
       where: { userId, sharedWithId: req.user.id, isActive: true },
     });
-    if (!sharing) return res.status(403).json({ success: false, message: 'Location not shared with you' });
-    if (sharing.expiresAt && new Date() > sharing.expiresAt) {
-      return res.status(403).json({ success: false, message: 'Location sharing expired' });
+    
+    if (sharing) {
+      if (!sharing.expiresAt || new Date() <= sharing.expiresAt) {
+        hasAccess = true;
+      }
+    } 
+    
+    // 2. Check for implicit access (Family Group Admin -> Member)
+    if (!hasAccess) {
+      const groupMember = await prisma.member.findFirst({
+        where: { 
+          userId: userId, 
+          group: { adminId: req.user.id } 
+        },
+      });
+      if (groupMember) {
+        hasAccess = true;
+      }
+    }
+
+    if (!hasAccess) {
+      return res.status(403).json({ success: false, message: 'Location not shared with you' });
     }
 
     const location = await prisma.userLocation.findUnique({ where: { userId } });
+    
+    if (!location) {
+      return res.status(404).json({ success: false, message: 'Location data not found for user' });
+    }
+
     res.json({ success: true, data: { location } });
   } catch (error) { next(error); }
 };
