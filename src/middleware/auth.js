@@ -32,6 +32,10 @@ const authenticate = async (req, res, next) => {
       }
       req.user = user;
       req.userType = 'user';
+      // Normalize role to uppercase to handle tokens with lowercase roles (e.g. from admin dashboard)
+      if (req.user.role) {
+        req.user.role = req.user.role.toUpperCase();
+      }
     }
 
     next();
