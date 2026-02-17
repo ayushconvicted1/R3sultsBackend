@@ -1,12 +1,17 @@
 const admin = require('firebase-admin');
 
 // Initialize Firebase Admin SDK
-// Ideally, use environment variables for service account credentials
 if (!admin.apps.length) {
   try {
-    const serviceAccount = process.env.GOOGLE_APPLICATION_CREDENTIALS 
-      ? require(process.env.GOOGLE_APPLICATION_CREDENTIALS) 
-      : undefined;
+    // Option 1: Inline JSON from env (for Vercel / serverless)
+    // Option 2: File path (for local development)
+    let serviceAccount;
+
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      serviceAccount = require(process.env.GOOGLE_APPLICATION_CREDENTIALS);
+    }
 
     if (serviceAccount) {
       admin.initializeApp({
@@ -14,10 +19,7 @@ if (!admin.apps.length) {
       });
       console.log('Firebase Admin initialized successfully');
     } else {
-      // Fallback for development if no credentials found, but warn heavily
       console.warn('WARNING: Firebase Admin not initialized (no credentials found). Notifications will fail.');
-      // You might want to initialize with default credentials if running in GCP environment
-      // admin.initializeApp(); 
     }
   } catch (error) {
     console.error('Failed to initialize Firebase Admin:', error);
