@@ -28,13 +28,28 @@ const authenticate = async (req, res, next) => {
     } else {
       // Support both 'id' (main backend tokens) and 'userId' (admin dashboard tokens)
       const userId = decoded.id || decoded.userId;
-      const user = await prisma.user.findUnique({ where: { id: userId } });
-      if (!user || !user.isActive) {
-        return res.status(401).json({ success: false, message: 'Invalid or inactive user account' });
+      let user = await prisma.user.findUnique({ where: { id: userId } });
+
+      if (user && !user.isActive) {
+        return res.status(401).json({ success: false, message: 'Inactive user account' });
       }
+
+      if (!user) {
+        // User not in local DB (e.g. super_admin from admin dashboard's MongoDB)
+        // Trust the valid token claims and construct a user object
+        const role = (decoded.role || 'MEMBER').toUpperCase();
+        user = {
+          id: userId,
+          email: decoded.email,
+          fullName: decoded.name || decoded.fullName || 'Unknown',
+          role,
+          isActive: true,
+        };
+      }
+
       req.user = user;
       req.userType = 'user';
-      // Normalize role to uppercase to handle tokens with lowercase roles (e.g. from admin dashboard)
+      // Normalize role to uppercase to handle tokens with lowercase roles
       if (req.user.role) {
         req.user.role = req.user.role.toUpperCase();
       }
