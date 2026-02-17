@@ -26,7 +26,9 @@ const authenticate = async (req, res, next) => {
       req.user = vendor;
       req.userType = 'vendor';
     } else {
-      const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+      // Support both 'id' (main backend tokens) and 'userId' (admin dashboard tokens)
+      const userId = decoded.id || decoded.userId;
+      const user = await prisma.user.findUnique({ where: { id: userId } });
       if (!user || !user.isActive) {
         return res.status(401).json({ success: false, message: 'Invalid or inactive user account' });
       }
