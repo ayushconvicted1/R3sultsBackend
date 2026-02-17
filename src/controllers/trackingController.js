@@ -141,10 +141,15 @@ exports.getLocationHistory = async (req, res, next) => {
 exports.getUserLocationHistory = async (req, res, next) => {
   try {
     const { userId } = req.params;
-    const sharing = await prisma.locationSharing.findFirst({
-      where: { userId, sharedWithId: req.user.id, isActive: true },
-    });
-    if (!sharing) return res.status(403).json({ success: false, message: 'Location not shared with you' });
+
+    // Super admins and admins can view any user's history without a sharing record
+    const isAdmin = req.user.role === 'SUPER_ADMIN' || req.user.role === 'ADMIN';
+    if (!isAdmin) {
+      const sharing = await prisma.locationSharing.findFirst({
+        where: { userId, sharedWithId: req.user.id, isActive: true },
+      });
+      if (!sharing) return res.status(403).json({ success: false, message: 'Location not shared with you' });
+    }
 
     const { startDate, endDate } = req.query;
     const { page, limit, skip } = paginate(req.query);
