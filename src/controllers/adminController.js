@@ -233,8 +233,9 @@ exports.updateUser = async (req, res, next) => {
     if (req.file) {
       try {
         const isImage = req.file.mimetype.startsWith('image/');
+        const isVideo = req.file.mimetype.startsWith('video/');
         const result = await uploadToCloudinary(req.file.buffer, {
-          resource_type: isImage ? 'image' : 'raw',
+          resource_type: isImage ? 'image' : isVideo ? 'video' : 'raw',
           folder: `r3sults/users/${userId}`,
         });
         if (isImage) {
