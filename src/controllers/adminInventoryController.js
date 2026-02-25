@@ -10,7 +10,7 @@ exports.get_inventory_items = async (req, res, next) => {
 
     try {
         const user = await req.user;
-        if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
+        if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
             return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
         // req.query is already available via Express;
@@ -49,7 +49,7 @@ exports.post_inventory_items = async (req, res, next) => {
 
     try {
         const user = await req.user;
-        if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
+        if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
             return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
         const body = req.body;
@@ -92,7 +92,7 @@ exports.get_inventory_items__id = async (req, res, next) => {
 
     try {
         const user = await req.user;
-        if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
+        if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
             return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
         const { id } = req.params;
@@ -121,7 +121,7 @@ exports.put_inventory_items__id = async (req, res, next) => {
 
     try {
         const user = await req.user;
-        if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
+        if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
             return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
         const { id } = req.params;
@@ -167,7 +167,7 @@ exports.delete_inventory_items__id = async (req, res, next) => {
 
     try {
         const user = await req.user;
-        if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
+        if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
             return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
         const { id } = req.params;
@@ -197,7 +197,7 @@ exports.get_inventory_locations = async (req, res, next) => {
 
     try {
         const user = await req.user;
-        if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
+        if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
             return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
         // req.query is already available via Express;
@@ -236,7 +236,7 @@ exports.post_inventory_locations = async (req, res, next) => {
 
     try {
         const user = await req.user;
-        if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
+        if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
             return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
         const body = req.body;
@@ -290,7 +290,7 @@ exports.get_inventory_locations__id = async (req, res, next) => {
 
     try {
         const user = await req.user;
-        if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
+        if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
             return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
         const { id } = req.params;
@@ -319,7 +319,7 @@ exports.put_inventory_locations__id = async (req, res, next) => {
 
     try {
         const user = await req.user;
-        if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
+        if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
             return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
         const { id } = req.params;
@@ -362,7 +362,7 @@ exports.delete_inventory_locations__id = async (req, res, next) => {
 
     try {
         const user = await req.user;
-        if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
+        if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
             return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
         const { id } = req.params;
@@ -392,7 +392,7 @@ exports.get_inventory_stock = async (req, res, next) => {
 
     try {
         const user = await req.user;
-        if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
+        if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
             return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
         // req.query is already available via Express;
@@ -434,7 +434,7 @@ exports.post_inventory_stock = async (req, res, next) => {
 
     try {
         const user = await req.user;
-        if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
+        if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
             return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
         const body = req.body;
@@ -522,7 +522,7 @@ exports.get_inventory_stock__id = async (req, res, next) => {
 
     try {
         const user = await req.user;
-        if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
+        if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
             return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
         const { id } = req.params;
@@ -551,7 +551,7 @@ exports.put_inventory_stock__id = async (req, res, next) => {
 
     try {
         const user = await req.user;
-        if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
+        if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
             return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
         const { id } = req.params;
@@ -657,7 +657,7 @@ exports.delete_inventory_stock__id = async (req, res, next) => {
 
     try {
         const user = await req.user;
-        if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
+        if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
             return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
         const { id } = req.params;
@@ -687,7 +687,7 @@ exports.post_inventory_stock__id_dispatch = async (req, res, next) => {
 
     try {
         const user = await req.user;
-        if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
+        if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
             return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
         const { id } = req.params;
@@ -749,7 +749,7 @@ exports.post_inventory_stock__id_reserve = async (req, res, next) => {
 
     try {
         const user = await req.user;
-        if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
+        if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
             return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
         const { id } = req.params;
@@ -803,7 +803,7 @@ exports.post_inventory_stock__id_restock = async (req, res, next) => {
 
     try {
         const user = await req.user;
-        if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
+        if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
             return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
         const { id } = req.params;
@@ -869,7 +869,7 @@ exports.post_inventory_seed = async (req, res, next) => {
 
     try {
         const user = await req.user;
-        if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
+        if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
             return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
         // Get the collection directly to drop old indexes

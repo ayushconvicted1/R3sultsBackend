@@ -151,6 +151,7 @@ exports.put_volunteer_teams = async (req, res, next) => {
         }
         // req.query is already available via Express;
         const id = req.query['id'];
+        if (!id || id === 'undefined') return res.status(400).json({ success: false, error: 'Invalid team ID provided' });
         if (!id) {
             return res.json({ success: false, error: 'Team ID required' }, { status: 400 });
         }
@@ -241,6 +242,7 @@ exports.delete_volunteer_teams = async (req, res, next) => {
         }
         // req.query is already available via Express;
         const id = req.query['id'];
+        if (!id || id === 'undefined') return res.status(400).json({ success: false, error: 'Invalid team ID provided' });
         if (!id) {
             return res.json({ success: false, error: 'Team ID required' }, { status: 400 });
         }

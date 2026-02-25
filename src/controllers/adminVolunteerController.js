@@ -249,7 +249,9 @@ exports.post_volunteers = async (req, res, next) => {
         });
         console.log('=== END USER CREATION ===');
         // Create volunteer profile - ensure all form fields are saved
+        const volunteerId = `VOL-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
         const volunteer = await prisma.adminVolunteer.create({ data: {
+                    volunteerId: volunteerId,
                     userId: user.id.toString(),
                     dateOfBirth: body.dateOfBirth ? new Date(body.dateOfBirth) : undefined,
                     gender: body.gender,
@@ -333,6 +335,7 @@ exports.put_volunteers = async (req, res, next) => {
         }
         // req.query is already available via Express;
         const id = req.query['id'];
+        if (!id || id === 'undefined') return res.status(400).json({ success: false, error: 'Invalid volunteer ID provided' });
         if (!id) {
             return res.json({ success: false, error: 'Volunteer ID required' }, { status: 400 });
         }
@@ -505,6 +508,7 @@ exports.delete_volunteers = async (req, res, next) => {
         }
         // req.query is already available via Express;
         const id = req.query['id'];
+        if (!id || id === 'undefined') return res.status(400).json({ success: false, error: 'Invalid volunteer ID provided' });
         if (!id) {
             return res.json({ success: false, error: 'Volunteer ID required' }, { status: 400 });
         }
@@ -632,7 +636,7 @@ exports.post_volunteers_seed = async (req, res, next) => {
 
     try {
         const user = await req.user;
-        if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
+        if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
             return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
         // Clear existing data

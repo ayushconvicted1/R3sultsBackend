@@ -110,7 +110,7 @@ exports.post_products = async (req, res, next) => {
     if (!tokenPayload) {
       return res.status(401).json({ success: false, message: 'Not authorized. No token provided.' });
     }
-    if (tokenPayload.role !== 'super_admin' && tokenPayload.role !== 'admin') {
+    if (tokenPayload.role !== 'SUPER_ADMIN' && tokenPayload.role !== 'ADMIN') {
       return res.status(403).json({ success: false, error: 'Permission denied' });
     }
 
@@ -211,7 +211,7 @@ exports.put_products__id = async (req, res, next) => {
     if (!tokenPayload) {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
-    if (tokenPayload.role !== 'super_admin' && tokenPayload.role !== 'admin') {
+    if (tokenPayload.role !== 'SUPER_ADMIN' && tokenPayload.role !== 'ADMIN') {
       return res.status(403).json({ success: false, error: 'Permission denied' });
     }
 
@@ -270,7 +270,7 @@ exports.delete_products__id = async (req, res, next) => {
     if (!tokenPayload) {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
-    if (tokenPayload.role !== 'super_admin' && tokenPayload.role !== 'admin') {
+    if (tokenPayload.role !== 'SUPER_ADMIN' && tokenPayload.role !== 'ADMIN') {
       return res.status(403).json({ success: false, error: 'Permission denied' });
     }
 

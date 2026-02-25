@@ -151,7 +151,7 @@ exports.post_damage_reports = async (req, res, next) => {
             return addCorsHeaders(response, request);
         }
         // Allow admin and super_admin to create damage reports
-        if (tokenPayload.role !== 'super_admin' && tokenPayload.role !== 'admin') {
+        if (tokenPayload.role !== 'SUPER_ADMIN' && tokenPayload.role !== 'ADMIN') {
             return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
             return addCorsHeaders(response, request);
         }
@@ -345,7 +345,7 @@ exports.put_damage_reports__id = async (req, res, next) => {
             return addCorsHeaders(response, request);
         }
         // Check permission
-        if (tokenPayload.role !== 'super_admin' && tokenPayload.role !== 'admin') {
+        if (tokenPayload.role !== 'SUPER_ADMIN' && tokenPayload.role !== 'ADMIN') {
             return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
             return addCorsHeaders(response, request);
         }
@@ -676,7 +676,7 @@ exports.delete_damage_reports__id = async (req, res, next) => {
             return addCorsHeaders(response, request);
         }
         // Only super_admin can delete damage reports
-        if (tokenPayload.role !== 'super_admin') {
+        if (tokenPayload.role !== 'SUPER_ADMIN') {
             return res.json({ success: false, error: 'Permission denied. Only super admin can delete damage reports.' }, { status: 403 });
             return addCorsHeaders(response, request);
         }
@@ -729,7 +729,7 @@ exports.post_damage_reports_seed = async (req, res, next) => {
             return res.json({ success: false, message: 'Not authorized. No token provided.' }, { status: 401 });
             return addCorsHeaders(response, request);
         }
-        if (tokenPayload.role !== 'super_admin') {
+        if (tokenPayload.role !== 'SUPER_ADMIN') {
             return res.json({ success: false, error: 'Permission denied. Only super admin can seed data.' }, { status: 403 });
             return addCorsHeaders(response, request);
         }
@@ -944,7 +944,7 @@ exports.delete_damage_reports_seed = async (req, res, next) => {
             return res.json({ success: false, message: 'Not authorized. No token provided.' }, { status: 401 });
             return addCorsHeaders(response, request);
         }
-        if (tokenPayload.role !== 'super_admin') {
+        if (tokenPayload.role !== 'SUPER_ADMIN') {
             return res.json({ success: false, error: 'Permission denied. Only super admin can clear data.' }, { status: 403 });
             return addCorsHeaders(response, request);
         }

@@ -129,7 +129,7 @@ exports.post_users = async (req, res, next) => {
         }
         const body = req.body;
         // Check permissions
-        if (body.role === 'super_admin' || body.role === 'admin') {
+        if (body.role === 'SUPER_ADMIN' || body.role === 'ADMIN') {
             if (!tokenPayload || !true) {
                 return res.json({ success: false, error: 'Only Super Admin can create admin users' }, { status: 403 });
             }
@@ -233,6 +233,7 @@ exports.put_users = async (req, res, next) => {
         }
         // req.query is already available via Express;
         const id = req.query['id'];
+        if (!id || id === 'undefined') return res.status(400).json({ success: false, error: 'Invalid user ID provided' });
         if (!id) {
             return res.json({ success: false, error: 'User ID required' }, { status: 400 });
         }
@@ -243,7 +244,7 @@ exports.put_users = async (req, res, next) => {
             return res.json({ success: false, error: 'User not found' }, { status: 404 });
         }
         // Prevent editing super_admin by non-super_admin
-        if (existingUser.role === 'super_admin' && tokenPayload.role !== 'super_admin') {
+        if (existingUser.role === 'SUPER_ADMIN' && tokenPayload.role !== 'SUPER_ADMIN') {
             return res.json({ success: false, error: 'Cannot edit super admin' }, { status: 403 });
         }
         // Handle firstName/lastName
@@ -288,7 +289,7 @@ exports.put_users = async (req, res, next) => {
             },
         };
         // Only super_admin can change roles
-        if (body.role && tokenPayload.role === 'super_admin') {
+        if (body.role && tokenPayload.role === 'SUPER_ADMIN') {
             updateData.role = body.role;
         }
         // Update password if provided
@@ -326,6 +327,7 @@ exports.delete_users = async (req, res, next) => {
         }
         // req.query is already available via Express;
         const id = req.query['id'];
+        if (!id || id === 'undefined') return res.status(400).json({ success: false, error: 'Invalid user ID provided' });
         if (!id) {
             return res.json({ success: false, error: 'User ID required' }, { status: 400 });
         }
@@ -334,7 +336,7 @@ exports.delete_users = async (req, res, next) => {
             return res.json({ success: false, error: 'User not found' }, { status: 404 });
         }
         // Prevent deleting super_admin
-        if (user.role === 'super_admin') {
+        if (user.role === 'SUPER_ADMIN') {
             return res.json({ success: false, error: 'Cannot delete super admin' }, { status: 403 });
         }
         // Delete user (admin and super_admin don't have related profiles)
@@ -412,8 +414,8 @@ exports.put_users__id = async (req, res, next) => {
             return res.json({ success: false, error: 'User not found' }, { status: 404 });
         }
         // Admin cannot edit super_admin or other admins
-        if (tokenPayload.role === 'admin') {
-            if (user.role === 'super_admin' || user.role === 'admin') {
+        if (tokenPayload.role === 'ADMIN') {
+            if (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') {
                 return res.json({ success: false, error: 'You cannot edit this user' }, { status: 403 });
             }
         }
@@ -436,7 +438,7 @@ exports.put_users__id = async (req, res, next) => {
         if (address)
             user.address = address;
         // Only super_admin can change roles
-        if (role && tokenPayload.role === 'super_admin') {
+        if (role && tokenPayload.role === 'SUPER_ADMIN') {
             user.role = role;
         }
         // Update password if provided

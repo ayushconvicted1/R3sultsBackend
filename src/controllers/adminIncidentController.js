@@ -18,6 +18,7 @@ exports.get_incidents = async (req, res, next) => {
         }
         // req.query is already available via Express;
         const id = req.query['id'];
+        if (!id || id === 'undefined') return res.status(400).json({ success: false, error: 'Invalid incident ID provided' });
         // If ID is provided, return single incident
         if (id) {
             try {
@@ -382,6 +383,7 @@ exports.delete_incidents = async (req, res, next) => {
         }
         // req.query is already available via Express;
         const id = req.query['id'];
+        if (!id || id === 'undefined') return res.status(400).json({ success: false, error: 'Invalid incident ID provided' });
         if (!id) {
             return res.json({ success: false, error: 'Incident ID is required' }, { status: 400 });
         }

@@ -340,6 +340,7 @@ exports.delete_devices = async (req, res, next) => {
         }
         // req.query is already available via Express;
         const id = req.query['id'];
+        if (!id || id === 'undefined') return res.status(400).json({ success: false, error: 'Invalid device ID provided' });
         if (!id) {
             return res.json({ success: false, error: 'Device ID is required' }, { status: 400 });
         }

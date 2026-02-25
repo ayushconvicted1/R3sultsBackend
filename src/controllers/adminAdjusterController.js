@@ -123,7 +123,7 @@ exports.post_adjusters = async (req, res, next) => {
             return addCorsHeaders(response, request);
         }
         // Allow admin and super_admin to create adjusters
-        if (tokenPayload.role !== 'super_admin' && tokenPayload.role !== 'admin') {
+        if (tokenPayload.role !== 'SUPER_ADMIN' && tokenPayload.role !== 'ADMIN') {
             return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
             return addCorsHeaders(response, request);
         }
@@ -259,7 +259,7 @@ exports.put_adjusters__id = async (req, res, next) => {
             return addCorsHeaders(response, request);
         }
         // Check permission
-        if (tokenPayload.role !== 'super_admin' && tokenPayload.role !== 'admin') {
+        if (tokenPayload.role !== 'SUPER_ADMIN' && tokenPayload.role !== 'ADMIN') {
             return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
             return addCorsHeaders(response, request);
         }
@@ -347,7 +347,7 @@ exports.delete_adjusters__id = async (req, res, next) => {
             return addCorsHeaders(response, request);
         }
         // Only super_admin can delete adjusters
-        if (tokenPayload.role !== 'super_admin') {
+        if (tokenPayload.role !== 'SUPER_ADMIN') {
             return res.json({ success: false, error: 'Permission denied. Only super admin can delete adjusters.' }, { status: 403 });
             return addCorsHeaders(response, request);
         }
@@ -393,7 +393,7 @@ exports.post_adjusters_seed = async (req, res, next) => {
             return addCorsHeaders(response, request);
         }
         // Only super_admin can seed data
-        if (tokenPayload.role !== 'super_admin') {
+        if (tokenPayload.role !== 'SUPER_ADMIN') {
             return res.json({ success: false, error: 'Permission denied. Only super admin can seed data.' }, { status: 403 });
             return addCorsHeaders(response, request);
         }
@@ -458,7 +458,7 @@ exports.delete_adjusters_seed = async (req, res, next) => {
             return addCorsHeaders(response, request);
         }
         // Only super_admin can clear data
-        if (tokenPayload.role !== 'super_admin') {
+        if (tokenPayload.role !== 'SUPER_ADMIN') {
             return res.json({ success: false, error: 'Permission denied. Only super admin can clear data.' }, { status: 403 });
             return addCorsHeaders(response, request);
         }

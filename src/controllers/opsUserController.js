@@ -204,6 +204,7 @@ exports.put_ops_users = async (req, res, next) => {
     }
 
     const id = req.query['id'];
+    if (!id || id === 'undefined') return res.status(400).json({ success: false, error: 'Invalid user ID provided' });
     if (!id) {
       return res.status(400).json({ success: false, error: 'User ID required' });
     }
@@ -214,7 +215,7 @@ exports.put_ops_users = async (req, res, next) => {
       return res.status(404).json({ success: false, error: 'User not found' });
     }
 
-    if (existing.role === 'super_admin' && tokenPayload.role !== 'super_admin') {
+    if (existing.role === 'SUPER_ADMIN' && tokenPayload.role !== 'SUPER_ADMIN') {
       return res.status(403).json({ success: false, error: 'Cannot edit super admin' });
     }
 
@@ -296,6 +297,7 @@ exports.delete_ops_users = async (req, res, next) => {
     }
 
     const id = req.query['id'];
+    if (!id || id === 'undefined') return res.status(400).json({ success: false, error: 'Invalid user ID provided' });
     if (!id) {
       return res.status(400).json({ success: false, error: 'User ID required' });
     }
