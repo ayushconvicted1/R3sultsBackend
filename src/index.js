@@ -61,6 +61,8 @@ app.use('/api/disasters', require('./routes/disaster'));
 app.use('/api/notifications', require('./routes/notification'));
 app.use('/api/volunteers', require('./routes/volunteersAlias'));
 app.use('/api/resource-locator', require('./routes/resourceLocator'));
+app.use('/api/live-disasters', require('./routes/liveDisaster'));
+app.use('/api/currency', require('./routes/currency'));
 
 // ─── Admin Dashboard Routes (migrated from Next.js) ───
 app.use('/api/admin-auth', require('./routes/adminAuth'));
