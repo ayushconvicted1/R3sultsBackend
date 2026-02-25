@@ -198,44 +198,47 @@ exports.put_services = async (req, res, next) => {
             country: body.location.country || 'United States',
         } : undefined;
         // Update service provider with ALL fields
-        const serviceProvider = await prisma.adminServiceProvider.update({ where: { id: id, } }, {
-            businessName: body.businessName,
-            businessType: body.businessType,
-            einNumber: body.einNumber, // EIN Number
-            registrationNumber: body.registrationNumber,
-            stateRegistration: body.stateRegistration,
-            description: body.description,
-            tagline: body.tagline,
-            logo: body.logo,
-            coverImage: body.coverImage,
-            gallery: body.gallery || [],
-            contactPerson: body.contactPerson, // firstName, lastName, designation, phone, email, alternatePhone
-            website: body.website,
-            socialLinks: body.socialLinks,
-            category: body.category,
-            subcategories: body.subcategories || [],
-            serviceType: body.serviceType,
-            services: body.services,
-            equipmentAvailable: body.equipmentAvailable,
-            teamSize: body.teamSize,
-            vehiclesAvailable: body.vehiclesAvailable,
-            location: locationData,
-            serviceAreas: body.serviceAreas,
-            maxServiceRadius: body.maxServiceRadius,
-            operatingHours: body.operatingHours,
-            is24x7Available: body.is24x7Available,
-            pricing: body.pricing,
-            paymentMethods: body.paymentMethods,
-            isAvailableForEmergency: body.isAvailableForEmergency,
-            emergencyCharges: body.emergencyCharges,
-            emergencyResponseTime: body.emergencyResponseTime,
-            yearsOfExperience: body.yearsOfExperience,
-            certifications: body.certifications,
-            licenses: body.licenses,
-            insuranceDetails: body.insuranceDetails,
-            documents: body.documents || [], // Category-based documents
-            status: body.status,
-        }, { new: true });
+        const serviceProvider = await prisma.adminServiceProvider.update({ 
+            where: { id: id },
+            data: {
+                businessName: body.businessName,
+                businessType: body.businessType,
+                einNumber: body.einNumber, // EIN Number
+                registrationNumber: body.registrationNumber,
+                stateRegistration: body.stateRegistration,
+                description: body.description,
+                tagline: body.tagline,
+                logo: body.logo,
+                coverImage: body.coverImage,
+                gallery: body.gallery || [],
+                contactPerson: body.contactPerson, // firstName, lastName, designation, phone, email, alternatePhone
+                website: body.website,
+                socialLinks: body.socialLinks,
+                category: body.category,
+                subcategories: body.subcategories || [],
+                serviceType: body.serviceType,
+                services: body.services,
+                equipmentAvailable: body.equipmentAvailable,
+                teamSize: body.teamSize,
+                vehiclesAvailable: body.vehiclesAvailable,
+                location: locationData,
+                serviceAreas: body.serviceAreas,
+                maxServiceRadius: body.maxServiceRadius,
+                operatingHours: body.operatingHours,
+                is24x7Available: body.is24x7Available,
+                pricing: body.pricing,
+                paymentMethods: body.paymentMethods,
+                isAvailableForEmergency: body.isAvailableForEmergency,
+                emergencyCharges: body.emergencyCharges,
+                emergencyResponseTime: body.emergencyResponseTime,
+                yearsOfExperience: body.yearsOfExperience,
+                certifications: body.certifications,
+                licenses: body.licenses,
+                insuranceDetails: body.insuranceDetails,
+                documents: body.documents || [], // Category-based documents
+                status: body.status,
+            }
+        });
         if (!serviceProvider) {
             return res.json({ success: false, error: 'Service provider not found' }, { status: 404 });
         }

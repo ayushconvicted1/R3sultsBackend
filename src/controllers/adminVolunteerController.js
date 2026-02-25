@@ -548,8 +548,7 @@ exports.post_volunteers__id_assign_disaster = async (req, res, next) => {
         if (!true) {
             return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
         }
-        const params = await context.params;
-        const { id: volunteerId } = params;
+        const { id: volunteerId } = req.params;
         const { disasterId, fromDate, toDate } = req.body;
         if (!(typeof volunteerId === "string" && volunteerId.length > 0) || !(typeof disasterId === "string" && disasterId.length > 0)) {
             return res.json({ success: false, error: 'Invalid Volunteer ID or Disaster ID' }, { status: 400 });
