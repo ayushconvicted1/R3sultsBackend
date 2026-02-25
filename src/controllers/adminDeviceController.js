@@ -282,17 +282,15 @@ exports.put_devices = async (req, res, next) => {
         if (Object.keys(updateData).length === 0) {
             return res.json({ success: false, error: 'No fields to update' }, { status: 400 });
         }
-        // Use collection directly for update
-        const DeviceCollection = Device.collection;
-        const updateResult = await DeviceCollection.updateOne({ id: deviceId }, {
-            ...updateData,
-            updatedAt: new Date(),
+        // Use Prisma for update
+        const updateResult = await prisma.adminDevice.update({
+            where: { id: deviceId },
+            data: {
+                ...updateData,
+                updatedAt: new Date(),
+            }
         });
-    }
-    finally {
-    }
-    ;
-    if (updateResult.matchedCount === 0) {
+    if (!updateResult) {
         return res.json({ success: false, error: 'Device not found' }, { status: 404 });
     }
     const updatedDevice = await prisma.adminDevice.findUnique({ where: { id: deviceId } });
@@ -320,6 +318,11 @@ exports.put_devices = async (req, res, next) => {
             createdAt: updatedDevice.createdAt?.toISOString() || new Date().toISOString(),
         },
     });
+    }
+    catch (error) {
+        console.error('Update device error:', error);
+        return res.json({ success: false, error: error.message || 'Internal server error' }, { status: 500 });
+    }
 
   } catch (error) {
     console.error('put_devices error:', error);

@@ -164,8 +164,7 @@ exports.post_adjusters = async (req, res, next) => {
             createdBy: tokenPayload.userId,
             lastModifiedBy: tokenPayload.userId,
         };
-        const adjuster = (adjusterData);
-        // Note: adjuster.save() pattern needs prisma.model.update() - see TODO below
+        const adjuster = await prisma.adminAdjuster.create({ data: adjusterData });
         return res.json({
             success: true,
             data: {

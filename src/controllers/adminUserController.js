@@ -445,7 +445,18 @@ exports.put_users__id = async (req, res, next) => {
         if (password) {
             user.password = await bcrypt.hash(password);
         }
-        // Note: user.save() pattern needs prisma.model.update() - see TODO below
+        await prisma.adminUser.update({
+            where: { id },
+            data: {
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+                status: user.status,
+                address: user.address,
+                role: user.role,
+                password: user.password
+            }
+        });
         return res.json({
             success: true,
             data: {

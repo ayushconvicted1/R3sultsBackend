@@ -18,7 +18,7 @@ exports.get_incidents = async (req, res, next) => {
         }
         // req.query is already available via Express;
         const id = req.query['id'];
-        if (!id || id === 'undefined') return res.status(400).json({ success: false, error: 'Invalid incident ID provided' });
+        if (id === 'undefined') return res.status(400).json({ success: false, error: 'Invalid incident ID provided' });
         // If ID is provided, return single incident
         if (id) {
             try {
@@ -302,10 +302,6 @@ exports.put_incidents = async (req, res, next) => {
             ...updateData,
             updatedAt: new Date(),
         };
-    }
-    finally // Add note if provided
-     { }
-    ;
     // Add note if provided
     if (body.note && String(body.note).trim()) {
         const newNote = {
@@ -334,16 +330,18 @@ exports.put_incidents = async (req, res, next) => {
     if (Object.keys(updateData).length === 0 && !updateOps.$push) {
         return res.json({ success: false, error: 'No fields to update' }, { status: 400 });
     }
-    // Use collection directly for update
-    const IncidentCollection = Incident.collection;
-    const updateResult = await IncidentCollection.updateOne({ id: incidentId }, updateOps);
-    if (updateResult.matchedCount === 0) {
-        return res.json({ success: false, error: 'Incident not found' }, { status: 404 });
+    // Use Prisma for update
+    const updateOpsPrisma = { ...updateOps };
+    if (updateOps.$push) {
+        if (updateOps.$push.notes) updateOpsPrisma.notes = { push: updateOps.$push.notes };
+        if (updateOps.$push.timeline?.$each) updateOpsPrisma.timeline = { push: updateOps.$push.timeline.$each };
+        delete updateOpsPrisma.$push;
     }
-    const updatedIncident = await prisma.adminIncident.findUnique({ where: { id: incidentId } });
-    if (!updatedIncident) {
-        return res.json({ success: false, error: 'Incident not found' }, { status: 404 });
-    }
+
+    const updatedIncident = await prisma.adminIncident.update({
+        where: { id: incidentId },
+        data: updateOpsPrisma
+    });
     return res.json({
         success: true,
         data: {
@@ -363,6 +361,11 @@ exports.put_incidents = async (req, res, next) => {
             updatedAt: updatedIncident.updatedAt?.toISOString() || new Date().toISOString(),
         },
     });
+    }
+    catch (error) {
+        console.error('Update incident error:', error);
+        return res.json({ success: false, error: error.message || 'Internal server error' }, { status: 500 });
+    }
 
   } catch (error) {
     console.error('put_incidents error:', error);

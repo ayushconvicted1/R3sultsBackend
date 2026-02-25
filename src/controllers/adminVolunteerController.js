@@ -609,8 +609,19 @@ exports.post_volunteers__id_assign_disaster = async (req, res, next) => {
                 status: 'assigned', // Use 'assigned' instead of 'pending' to match schema enum
             });
         }
-        // Note: volunteer.save() pattern needs prisma.model.update() - see TODO below
-        // Note: disaster.save() pattern needs prisma.model.update() - see TODO below
+        // Save volunteer and disaster
+        await prisma.adminVolunteer.update({
+            where: { id: volunteer.id },
+            data: {
+                assignedDisasters: assignments,
+                availability: 'on_mission'
+            }
+        });
+        
+        await prisma.adminDisaster.update({
+            where: { id: disaster.id },
+            data: { assignedVolunteers: disasterDoc.assignedVolunteers }
+        });
         // Populate disaster data for response
         await volunteer;
         return res.json({

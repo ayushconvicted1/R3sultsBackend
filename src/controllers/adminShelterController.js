@@ -202,18 +202,8 @@ exports.post_shelters = async (req, res, next) => {
                 lng: Number(body.coordinates?.lng) || 0,
             },
         };
-        // Create shelter using insertOne to bypass any hooks that cause "next is not a function" error
-        // Add timestamps manually since insertOne bypasses Mongoose timestamps
-        const now = new Date();
-        const shelterDataWithTimestamps = {
-            ...shelterData,
-            createdAt: now,
-            updatedAt: now,
-        };
-        const ShelterCollection = Shelter.collection;
-        const insertResult = await ShelterCollection.insertOne(shelterDataWithTimestamps);
-        // Fetch the created shelter using findById
-        const shelter = await prisma.adminShelter.findUnique({ where: { id: insertResult.insertedId } });
+        // Create shelter using Prisma
+        const shelter = await prisma.adminShelter.create({ data: shelterData });
         if (!shelter) {
             return res.json({ success: false, error: 'Failed to create shelter' }, { status: 500 });
         }
@@ -424,55 +414,21 @@ exports.put_shelters = async (req, res, next) => {
             city: shelter.city,
             state: shelter.state,
         });
-        // Use collection.updateOne directly to bypass Mongoose middleware and ensure update happens
-        // This is similar to how we use insertOne for creates
-        const ShelterCollection = Shelter.collection;
-        // Add updatedAt timestamp manually
-        const updateDataWithTimestamp = {
-            ...updateData,
-            updatedAt: new Date(),
-        };
-        console.log('Update data with timestamp:', JSON.stringify(updateDataWithTimestamp, null, 2));
-        const updateResult = await ShelterCollection.updateOne({ id: shelterId }, updateDataWithTimestamp);
+        // Use Prisma update
+        const shelterUpdate = await prisma.adminShelter.update({ 
+            where: { id: shelterId }, 
+            data: updateData 
+        });
+
+        return res.json({
+            success: true,
+            message: 'Shelter updated successfully',
+            data: { id: shelterUpdate.id.toString() }
+        });
+    } catch (innerError) {
+        console.error('Update shelter error:', innerError);
+        return res.json({ success: false, error: 'Internal server error' }, { status: 500 });
     }
-    finally {
-    }
-    ;
-    console.log('Update operation result:', {
-        matchedCount: updateResult.matchedCount,
-        modifiedCount: updateResult.modifiedCount,
-        acknowledged: updateResult.acknowledged,
-        upsertedCount: updateResult.upsertedCount,
-        updateDataKeys: Object.keys(updateData),
-        updateDataSample: {
-            name: updateData.name,
-            capacity: updateData.capacity,
-            currentOccupancy: updateData.currentOccupancy,
-            zipCode: updateData.zipCode,
-        }
-    });
-    if (updateResult.matchedCount === 0) {
-        console.error('ERROR: No document matched the query. ID might be incorrect.');
-        console.error('Query used:', { id: shelterId });
-        console.error('Shelter ID string:', body.id);
-        return res.json({ success: false, error: 'Shelter not found' }, { status: 404 });
-    }
-    if (updateResult.modifiedCount === 0 && Object.keys(updateData).length > 0) {
-        console.error('ERROR: Update matched but no fields were modified!');
-        console.error('This indicates the update did not save to the database.');
-        console.error('Update data that should have been saved:', JSON.stringify(updateData, null, 2));
-        // Try to fetch the current document to see what's in the database
-        const currentDoc = await ShelterCollection.findOne({ id: shelterId });
-        console.error('Current document in database:', JSON.stringify(currentDoc, null, 2));
-        // Force the update by using replaceOne or trying again with explicit values
-        console.log('Attempting force update...');
-        const forceUpdateResult = await ShelterCollection.updateOne({ id: shelterId }, updateDataWithTimestamp);
-    }
-    {
-        upsert: false;
-    }
-    ;
-    console.log('Force update result:', forceUpdateResult);
 
   } catch (error) {
     console.error('put_shelters error:', error);

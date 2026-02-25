@@ -252,7 +252,10 @@ exports.post_mobile_tasks_accept = async (req, res, next) => {
             return res.json({ success: false, error: 'Task cannot be accepted in current state' }, { status: 400 });
         }
         assignment.status = 'active';
-        // Note: volunteer.save() pattern needs prisma.model.update() - see TODO below
+        await prisma.adminVolunteer.update({
+            where: { id: volunteer.id },
+            data: { assignedDisasters: assignments }
+        });
         return res.json({
             success: true,
             message: 'Task accepted successfully',
@@ -304,14 +307,20 @@ exports.post_mobile_tasks_decline = async (req, res, next) => {
             return res.json({ success: false, error: 'Completed task cannot be declined' }, { status: 400 });
         }
         assignment.status = 'cancelled';
-        // Note: volunteer.save() pattern needs prisma.model.update() - see TODO below
-        const volunteerId = volunteer.id;
-        const disaster = await prisma.adminDisaster.findUnique({ where: { id: disasterId } });
+        await prisma.adminVolunteer.update({
+            where: { id: volunteerId },
+            data: { assignedDisasters: assignments }
+        });
         if (disaster && disaster.assignedVolunteers?.length) {
-            const av = disaster.assignedVolunteers.find((v) => v.volunteerId?.toString() === volunteerId?.toString());
-            if (av)
+            const avList = disaster.assignedVolunteers;
+            const av = avList.find((v) => v.volunteerId?.toString() === volunteerId?.toString());
+            if (av) {
                 av.status = 'removed';
-            // Note: disaster.save() pattern needs prisma.model.update() - see TODO below
+                await prisma.adminDisaster.update({
+                    where: { id: disasterId },
+                    data: { assignedVolunteers: avList }
+                });
+            }
         }
         return res.json({
             success: true,

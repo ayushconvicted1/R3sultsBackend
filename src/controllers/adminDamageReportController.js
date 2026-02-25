@@ -244,8 +244,7 @@ exports.post_damage_reports = async (req, res, next) => {
             createdBy: tokenPayload.userId,
             lastModifiedBy: tokenPayload.userId,
         };
-        const damageReport = (reportData);
-        // Note: damageReport.save() pattern needs prisma.model.update() - see TODO below
+        const damageReport = await prisma.adminDamageReport.create({ data: reportData });
         // Calculate metrics from saved document
         const savedTotalFunding = damageReport.fundingSources.reduce((sum, source) => sum + (source.amount || 0), 0);
         const fundingPercentage = damageReport.estimatedCost > 0
@@ -305,7 +304,22 @@ exports.get_damage_reports__id = async (req, res, next) => {
             return res.json({ success: false, error: 'Damage report not found' }, { status: 404 });
             return addCorsHeaders(response, request);
         }
-        const metrics = calculateMetrics(damageReport);
+        let fundingSources = damageReport.fundingSources || [];
+        if (typeof damageReport.fundingSources === 'string') {
+            try { fundingSources = JSON.parse(damageReport.fundingSources); } catch(e) { fundingSources = []; }
+        }
+        const savedTotalFunding = Array.isArray(fundingSources) ? fundingSources.reduce((sum, source) => sum + (source.amount || 0), 0) : 0;
+        const fundingPercentage = damageReport.estimatedCost > 0
+            ? Math.round((savedTotalFunding / damageReport.estimatedCost) * 100)
+            : 0;
+        const metrics = {
+            customerFullName: `${damageReport.customer?.firstName || ''} ${damageReport.customer?.lastName || ''}`.trim(),
+            totalFunding: savedTotalFunding,
+            fundingPercentage,
+            remainingFunding: Math.max(0, (damageReport.estimatedCost || 0) - savedTotalFunding),
+            totalVendorCost: 0,
+            vendorWorkProgress: 0,
+        };
         return res.json({
             success: true,
             data: {
@@ -549,20 +563,11 @@ exports.put_damage_reports__id = async (req, res, next) => {
                         'assignedReports.$.approvalDate': new Date(),
                         'assignedReports.$.status': 'approved',
                     });
+                } catch (adjErr) {
+                    console.error('Error updating adjuster approval:', adjErr);
                 }
-                finally {
-                }
-                ;
-            }
-            try { }
-            catch (adjErr) {
-                console.error('Error updating adjuster approval:', adjErr);
             }
         }
-    }
-    // Handle vendor assignments
-    finally {
-    }
     // Handle vendor assignments
     if (body.assignedVendors && Array.isArray(body.assignedVendors)) {
         const existingVendors = existingReport.assignedVendors || [];
@@ -630,22 +635,39 @@ exports.put_damage_reports__id = async (req, res, next) => {
         return res.json({ success: false, error: 'Damage report not found' }, { status: 404 });
         return addCorsHeaders(response, request);
     }
-    const { id: _omitId, __v: _omitV, ...updatePayload } = body;
-    Object.keys(updatePayload).forEach((key) => {
-        if (key === 'workflowSteps') {
-            doc.workflowSteps = updatePayload.workflowSteps;
-            doc.markModified('workflowSteps');
-        }
-        else if (key === 'reportDate' && updatePayload.reportDate) {
-            doc.reportDate = new Date(updatePayload.reportDate);
-        }
-        else if (Object.prototype.hasOwnProperty.call(updatePayload, key)) {
-            doc.set(key, updatePayload[key]);
-        }
+    const { 
+        id: _omitId, 
+        __v: _omitV, 
+        customerFullName, 
+        totalFunding, 
+        fundingPercentage, 
+        remainingFunding, 
+        totalVendorCost, 
+        vendorWorkProgress,
+        createdAt,
+        updatedAt,
+        ...updatePayload 
+    } = body;
+    const damageReport = await prisma.adminDamageReport.update({
+        where: { id: id },
+        data: updatePayload
     });
-    // Note: doc.save() pattern needs prisma.model.update() - see TODO below
-    const damageReport = doc.toObject ? doc : doc;
-    const metrics = calculateMetrics(damageReport);
+    let fundingSources = damageReport.fundingSources || [];
+    if (typeof damageReport.fundingSources === 'string') {
+        try { fundingSources = JSON.parse(damageReport.fundingSources); } catch(e) { fundingSources = []; }
+    }
+    const savedTotalFunding = Array.isArray(fundingSources) ? fundingSources.reduce((sum, source) => sum + (source.amount || 0), 0) : 0;
+    const calculatedFundingPercentage = damageReport.estimatedCost > 0
+        ? Math.round((savedTotalFunding / damageReport.estimatedCost) * 100)
+        : 0;
+    const metrics = {
+        customerFullName: `${damageReport.customer?.firstName || ''} ${damageReport.customer?.lastName || ''}`.trim(),
+        totalFunding: savedTotalFunding,
+        fundingPercentage: calculatedFundingPercentage,
+        remainingFunding: Math.max(0, (damageReport.estimatedCost || 0) - savedTotalFunding),
+        totalVendorCost: 0,
+        vendorWorkProgress: 0,
+    };
     return res.json({
         success: true,
         data: {
@@ -658,7 +680,10 @@ exports.put_damage_reports__id = async (req, res, next) => {
         message: 'Damage report updated successfully',
     });
     return addCorsHeaders(response, request);
-
+  } catch (innerError) {
+    console.error('Update damage report processing error:', innerError);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
   } catch (error) {
     console.error('put_damage_reports__id error:', error);
     next(error);

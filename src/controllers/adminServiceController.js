@@ -475,11 +475,19 @@ exports.put_category_documents = async (req, res, next) => {
             label: newDoc.label,
             required: newDoc.required ?? true,
         });
-        // Note: requirement.save() pattern needs prisma.model.update() - see TODO below
+        const updatedRequirement = await prisma.adminCategoryDocReq.upsert({
+            where: { category: requirement.category },
+            update: { documents: requirement.documents },
+            create: {
+                category: requirement.category,
+                categoryLabel: requirement.categoryLabel,
+                documents: requirement.documents,
+            }
+        });
         return res.json({
             success: true,
             message: 'Document type added successfully',
-            data: requirement,
+            data: updatedRequirement,
         });
     }
     catch (error) {
@@ -538,11 +546,14 @@ exports.delete_category_documents = async (req, res, next) => {
             }, { status: 404 });
         }
         requirement.documents.splice(docIndex, 1);
-        // Note: requirement.save() pattern needs prisma.model.update() - see TODO below
+        const updatedRequirement = await prisma.adminCategoryDocReq.update({
+            where: { category: requirement.category },
+            data: { documents: requirement.documents }
+        });
         return res.json({
             success: true,
             message: 'Document type removed successfully',
-            data: requirement,
+            data: updatedRequirement,
         });
     }
     catch (error) {

@@ -635,7 +635,20 @@ exports.put_inventory_stock__id = async (req, res, next) => {
                 timestamp: new Date(),
             });
         }
-        // Note: stockEntry.save() pattern needs prisma.model.update() - see TODO below
+        stockEntry.lastUpdated = new Date();
+        const updatedEntry = await prisma.adminStockEntry.update({
+            where: { id },
+            data: {
+                item: stockEntry.item,
+                location: stockEntry.location,
+                inventory: stockEntry.inventory,
+                batches: stockEntry.batches,
+                actions: stockEntry.actions,
+                auditLog: stockEntry.auditLog,
+                tags: stockEntry.tags,
+                lastUpdated: stockEntry.lastUpdated
+            }
+        });
         return res.json({
             success: true,
             data: stockEntry,
@@ -726,7 +739,16 @@ exports.post_inventory_stock__id_dispatch = async (req, res, next) => {
             change: `Dispatched ${quantityNum} ${stockEntry.inventory.unit}${destination ? ` to ${destination}` : ''}. Quantity changed from ${oldQuantity} to ${newQuantity}`,
             timestamp: new Date(),
         });
-        // Note: stockEntry.save() pattern needs prisma.model.update() - see TODO below
+        stockEntry.lastUpdated = new Date();
+        await prisma.adminStockEntry.update({
+            where: { id },
+            data: {
+                inventory: stockEntry.inventory,
+                actions: stockEntry.actions,
+                auditLog: stockEntry.auditLog,
+                lastUpdated: stockEntry.lastUpdated
+            }
+        });
         return res.json({
             success: true,
             data: stockEntry,
@@ -780,7 +802,15 @@ exports.post_inventory_stock__id_reserve = async (req, res, next) => {
             change: `Reserved ${quantityNum} ${stockEntry.inventory.unit}${notes ? `: ${notes}` : ''}. Reserved quantity changed from ${oldReserved} to ${newReserved}`,
             timestamp: new Date(),
         });
-        // Note: stockEntry.save() pattern needs prisma.model.update() - see TODO below
+        stockEntry.lastUpdated = new Date();
+        await prisma.adminStockEntry.update({
+            where: { id },
+            data: {
+                inventory: stockEntry.inventory,
+                auditLog: stockEntry.auditLog,
+                lastUpdated: stockEntry.lastUpdated
+            }
+        });
         return res.json({
             success: true,
             data: stockEntry,
@@ -846,7 +876,17 @@ exports.post_inventory_stock__id_restock = async (req, res, next) => {
             change: `Restocked ${quantityNum} ${stockEntry.inventory.unit}. Quantity changed from ${oldQuantity} to ${newQuantity}`,
             timestamp: new Date(),
         });
-        // Note: stockEntry.save() pattern needs prisma.model.update() - see TODO below
+        stockEntry.lastUpdated = new Date();
+        await prisma.adminStockEntry.update({
+            where: { id },
+            data: {
+                inventory: stockEntry.inventory,
+                batches: stockEntry.batches,
+                actions: stockEntry.actions,
+                auditLog: stockEntry.auditLog,
+                lastUpdated: stockEntry.lastUpdated
+            }
+        });
         return res.json({
             success: true,
             data: stockEntry,

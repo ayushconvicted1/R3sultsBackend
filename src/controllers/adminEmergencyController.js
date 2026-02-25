@@ -77,22 +77,27 @@ exports.post_emergencies = async (req, res, next) => {
         }
         const body = req.body;
         const { title, description, type, priority, disasterId, location, requestedBy, numberOfPeople, specialRequirements, } = body;
-        const emergency = await prisma.adminprisma.adminEmergency.create({ data: { data: {
-                    title,
-                    description,
-                    type,
-                    priority,
-                    status: 'pending',
-                    disasterId,
-                    location: {
-                        type: 'Point',
-                        coordinates: location.coordinates,
-                        address: location.address,
-                    },
-                    requestedBy,
-                    numberOfPeople: numberOfPeople || 1,
-                    specialRequirements: specialRequirements || [],
-                } } });
+        const emergencyData = {
+            title,
+            description: description || '',
+            type,
+            priority,
+            status: 'pending',
+            numberOfPeople: numberOfPeople || 1,
+            specialRequirements: specialRequirements || [],
+            location: {
+                type: 'Point',
+                coordinates: location?.coordinates || [0, 0],
+                address: location?.address || '',
+            },
+            requestedBy: requestedBy || { name: 'Unknown', phone: '', email: '' },
+        };
+        
+        if (disasterId) {
+            emergencyData.disasterId = disasterId;
+        }
+
+        const emergency = await prisma.adminEmergency.create({ data: emergencyData });
         return res.json({
             success: true,
             data: { emergency },

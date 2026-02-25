@@ -111,11 +111,7 @@ exports.post_volunteer_teams = async (req, res, next) => {
                     status: body.status || 'active',
                 } } });
         // Update volunteers with teamId
-        await prisma.adminVolunteer.updateMany({ where: { id: { in: memberIds } }, }, { teamId: team.id.toString() });
-    }
-    finally {
-    }
-    ;
+        await prisma.adminVolunteer.updateMany({ where: { id: { in: memberIds } }, data: { teamId: team.id.toString() } });
     const populatedTeam = await prisma.adminVolunteerTeam.findUnique({ where: { id: team.id } });
     // Populate lead and members
     const leadData = await prisma.adminVolunteer.findUnique({ where: { id: team.leadId } });
@@ -131,6 +127,11 @@ exports.post_volunteer_teams = async (req, res, next) => {
         },
         message: 'Team created successfully'
     }, { status: 201 });
+    }
+    catch (error) {
+        console.error('Create team error:', error);
+        return res.json({ success: false, error: 'Internal server error' }, { status: 500 });
+    }
 
   } catch (error) {
     console.error('post_volunteer_teams error:', error);
@@ -202,12 +203,7 @@ exports.put_volunteer_teams = async (req, res, next) => {
         const removedMembers = oldMemberIds.filter((id) => !memberIds.includes(id.toString()));
         await prisma.adminVolunteer.updateMany({ where: { id: { in: removedMembers } }, }, { $unset: { teamId: '' } });
         // Add teamId to new members
-        await prisma.adminVolunteer.updateMany({ where: { id: { in: memberIds } }, }, { teamId: id });
-    }
-    finally // Populate lead and members
-     {
-    }
-    ;
+        await prisma.adminVolunteer.updateMany({ where: { id: { in: memberIds } }, data: { teamId: id } });
     // Populate lead and members
     const leadData = await prisma.adminVolunteer.findUnique({ where: { id: leadId } });
     const membersData = await prisma.adminVolunteer.findMany({ where: { id: { in: memberIds } } });
@@ -222,6 +218,11 @@ exports.put_volunteer_teams = async (req, res, next) => {
         },
         message: 'Team updated successfully'
     });
+    }
+    catch (error) {
+        console.error('Update team error:', error);
+        return res.json({ success: false, error: 'Internal server error' }, { status: 500 });
+    }
 
   } catch (error) {
     console.error('put_volunteer_teams error:', error);
