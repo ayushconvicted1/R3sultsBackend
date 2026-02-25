@@ -4,6 +4,8 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./config/swagger');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -23,6 +25,12 @@ app.use(rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many requests, please try again later' },
+}));
+
+// ─── Swagger Docs ───
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'R3sults API Docs',
 }));
 
 // ─── Health Check ───
@@ -52,6 +60,29 @@ app.use('/api/upload', require('./routes/upload'));
 app.use('/api/disasters', require('./routes/disaster'));
 app.use('/api/notifications', require('./routes/notification'));
 
+// ─── Admin Dashboard Routes (migrated from Next.js) ───
+app.use('/api/admin-auth', require('./routes/adminAuth'));
+app.use('/api/admin/dashboard', require('./routes/dashboardStats'));
+app.use('/api/admin/ops-users', require('./routes/opsUser'));
+app.use('/api/admin/disasters', require('./routes/adminDisaster'));
+app.use('/api/admin/emergencies', require('./routes/adminEmergency'));
+app.use('/api/admin/shelters', require('./routes/adminShelter'));
+app.use('/api/admin/devices', require('./routes/adminDevice'));
+app.use('/api/admin/incidents', require('./routes/adminIncident'));
+app.use('/api/admin/inventory', require('./routes/adminInventory'));
+app.use('/api/admin/damage-reports', require('./routes/adminDamageReport'));
+app.use('/api/admin/adjusters', require('./routes/adminAdjuster'));
+app.use('/api/admin/volunteer-mgmt', require('./routes/adminVolunteer'));
+app.use('/api/admin/volunteer-teams', require('./routes/adminVolunteerTeam'));
+app.use('/api/admin/products', require('./routes/adminProduct'));
+app.use('/api/admin/orders', require('./routes/adminOrder'));
+app.use('/api/admin/services', require('./routes/adminService'));
+app.use('/api/admin/users-mgmt', require('./routes/adminUser'));
+app.use('/api/admin/reports', require('./routes/adminReport'));
+app.use('/api/admin/search', require('./routes/adminSearch'));
+app.use('/api/admin/seed', require('./routes/adminSeed'));
+app.use('/api/admin/mobile', require('./routes/adminMobile'));
+
 // ─── Dev Endpoints ───
 const prisma = require('./lib/prisma');
 app.get('/api/dev/seed-info', async (_req, res, next) => {
@@ -77,6 +108,7 @@ app.use(errorHandler);
 app.listen(PORT, () => {
   console.log(`🚀 R3sults API server running on port ${PORT}`);
   console.log(`📋 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`📖 API Docs: http://localhost:${PORT}/api-docs`);
 });
 
 module.exports = app;

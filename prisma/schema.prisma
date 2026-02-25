@@ -565,3 +565,540 @@ model Notification {
   @@index([userId, createdAt])
   @@map("notifications")
 }
+
+// ═══════════════════════════════════════════════════════════
+// Admin Dashboard Models (migrated from MongoDB)
+// ═══════════════════════════════════════════════════════════
+
+model OpsUser {
+  id           String   @id @default(cuid())
+  firstName    String
+  lastName     String
+  name         String?
+  email        String   @unique
+  password     String
+  phone        String?  @default("")
+  role         String   @default("admin") // super_admin | admin
+  status       String   @default("active") // active | inactive | suspended | pending
+  avatar       String?  @default("")
+  profilePhoto String?  @default("")
+  dateOfBirth  DateTime?
+  bloodGroup   String?  @default("")
+  gender       String?  @default("")
+  ssnNumber    String?  @default("")
+  driversLicense Json?  // { number, state, expiryDate }
+  emergencyContact Json? // { firstName, lastName, phone, relation }
+  address      Json?    // { street, apartment, city, state, pincode, zipCode, country }
+  preferences  Json?    // { notifications: { email, push, sms, ... } }
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([email])
+  @@index([role, status])
+  @@map("ops_users")
+}
+
+model AdminDisaster {
+  id                 String   @id @default(cuid())
+  title              String
+  description        String
+  type               String   // earthquake, flood, cyclone, fire, etc.
+  severity           String   // low, medium, high, critical
+  status             String   @default("active") // active, contained, resolved, monitoring
+  location           Json     // { type, coordinates, address, city, state, country }
+  affectedArea       Float    @default(0)
+  affectedPopulation Int      @default(0)
+  casualties         Json?    @default("{\"deaths\":0,\"injured\":0,\"missing\":0}")
+  resources          Json?    @default("{\"volunteersDeployed\":0,\"serviceProvidersEngaged\":0,\"fundsAllocated\":0,\"suppliesDistributed\":[]}")
+  assignedVolunteers Json?    @default("[]") // [{ volunteerId, assignedAt, assignedBy, status }]
+  reportedBy         String?
+  reportedAt         DateTime @default(now())
+  startedAt          DateTime
+  resolvedAt         DateTime?
+  images             String[] @default([])
+  updates            Json?    @default("[]") // [{ message, updatedBy, updatedAt }]
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([status, severity])
+  @@index([type])
+  @@index([createdAt(sort: Desc)])
+  @@map("admin_disasters")
+}
+
+model AdminEmergency {
+  id                  String    @id @default(cuid())
+  title               String
+  description         String
+  type                String    // evacuation, rescue, medical, supply_delivery, shelter, other
+  priority            String    // low, medium, high, critical
+  status              String    @default("pending") // pending, dispatched, in_progress, resolved, cancelled
+  disasterId          String?
+  location            Json      // { type, coordinates, address }
+  requestedBy         Json      // { name, phone, email }
+  assignedTo          String[]  @default([]) // volunteer IDs
+  numberOfPeople      Int       @default(1)
+  specialRequirements String[]  @default([])
+  estimatedTime       String?
+  actualCompletionTime DateTime?
+  notes               String[]  @default([])
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([status, priority])
+  @@index([disasterId])
+  @@index([createdAt(sort: Desc)])
+  @@map("admin_emergencies")
+}
+
+model AdminShelter {
+  id               String   @id @default(cuid())
+  name             String
+  addressLine1     String
+  addressLine2     String?
+  city             String
+  state            String
+  zipCode          String?
+  country          String?  @default("United States")
+  capacity         Int
+  currentOccupancy Int      @default(0)
+  contactPerson    String
+  contactPhone     String
+  contactEmail     String?
+  description      String?
+  website          String?
+  operatingHours   String?
+  notes            String?
+  facilities       String[] @default([])
+  status           String   @default("active") // active, full, closed, maintenance
+  type             String   // temporary, permanent, emergency, relief_camp
+  coordinates      Json     // { lat, lng }
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([city, state])
+  @@index([status])
+  @@index([type])
+  @@map("admin_shelters")
+}
+
+model AdminDevice {
+  id              String   @id @default(cuid())
+  deviceId        String   @unique
+  deviceName      String
+  deviceType      String   // watch_pro, watch_lite, tracker
+  ownerName       String
+  registeredDate  DateTime @default(now())
+  location        Json     // { address, city, state, zipCode, coordinates: { lat, lng } }
+  batteryLevel    Int      @default(100)
+  signalStrength  Int      @default(100)
+  firmwareVersion String   @default("2.4.1")
+  lastSynced      DateTime @default(now())
+  status          String   @default("active") // active, inactive, offline, maintenance
+  features        Json?    @default("{\"gpsTracking\":true,\"sosButton\":true,\"heartRateMonitor\":false,\"fallDetection\":false}")
+  primaryOwner    Json     // { name, role, avatar }
+  familyMembers   Json?    @default("[]") // [{ name, role, avatar }]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([ownerName])
+  @@index([status])
+  @@map("admin_devices")
+}
+
+model AdminIncident {
+  id           String   @id @default(cuid())
+  ticketNumber String   @unique
+  type         String   // insurance_support, finance_management, legal_assistance, housing, medical, other
+  title        String
+  description  String
+  priority     String   @default("low") // low, medium, high, critical
+  status       String   @default("open") // open, in_progress, resolved, closed
+  reportedBy   Json     // { name, email, phone }
+  assignedTo   String?  @default("Unassigned")
+  attachments  String[] @default([])
+  notes        Json?    @default("[]") // [{ content, createdBy, createdAt }]
+  timeline     Json?    @default("[]") // [{ type, title, description, createdBy, createdAt }]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([status])
+  @@index([priority])
+  @@index([type])
+  @@index([assignedTo])
+  @@map("admin_incidents")
+}
+
+model AdminInventoryItem {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  category    String   // medical, food, water, shelter, transport, equipment, clothing, other
+  unit        String
+  sku         String?  @unique
+  barcode     String?  @unique
+  image       String?  @default("")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([name])
+  @@index([category])
+  @@index([isActive])
+  @@map("admin_inventory_items")
+}
+
+model AdminStockLocation {
+  id            String   @id @default(cuid())
+  name          String
+  address       Json     // { street, suite, city, state, zipCode, country }
+  coordinates   Json     // { type, coordinates: [lng, lat] }
+  contactPerson Json?    // { name, phone, email }
+  capacity      Json?    // { total, unit }
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([name])
+  @@index([isActive])
+  @@map("admin_stock_locations")
+}
+
+model AdminStockEntry {
+  id          String   @id @default(cuid())
+  item        Json     // { name, category, sku, description }
+  location    Json     // { warehouseId, name, address, coordinates, manager }
+  inventory   Json     // { currentQuantity, unit, threshold, reservedQuantity, availableQuantity }
+  status      String   @default("In-Stock") // In-Stock, Low Stock, Critical, Depleted, Expired
+  batches     Json?    @default("[]") // [{ batchNumber, quantity, expiryDate, receivedDate, condition }]
+  actions     Json?    @default("[]") // [{ type, triggeredBy, timestamp, status, notes }]
+  auditLog    Json?    @default("[]") // [{ userId, change, timestamp }]
+  tags        String[] @default([])
+  lastUpdated DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@map("admin_stock_entries")
+}
+
+model AdminProduct {
+  id               String   @id @default(cuid())
+  name             String
+  description      String?
+  sku              String   @unique
+  barcode          String?  @unique
+  category         String   // shoes, boots, jackets, watches, shirts, safety_suits, safety_equipment, accessories, other
+  subcategory      String?
+  costPrice        Float
+  sellingPrice     Float
+  discount         Float?   @default(0)
+  taxRate          Float?   @default(0)
+  stock            Json     // { quantity, lowStockThreshold, reservedQuantity, availableQuantity, reorderPoint, maxStock }
+  brand            String?
+  model            String?
+  size             String[] @default([])
+  color            String[] @default([])
+  material         String?
+  weight           Float?
+  dimensions       Json?    // { length, width, height }
+  safetyFeatures   String[] @default([])
+  safetyStandards  String[] @default([])
+  certifications   String[] @default([])
+  images           Json?    @default("[]") // [{ url, alt, isPrimary }]
+  videoUrl         String?
+  model3dUrl       String?
+  model3dFormat    String?
+  keyFeatures      String[] @default([])
+  variants         Json?    @default("[]") // [{ id, size, color, stock, sku, price, ... }]
+  categoryAttributes Json?  // { shirtSizes, strapColors, ... }
+  specifications   Json?    @default("[]") // [{ key, value }]
+  vendor           Json?    // { name, contact, email, address }
+  status           String   @default("active") // active, inactive, discontinued, out_of_stock
+  isFeatured       Boolean  @default(false)
+  tags             String[] @default([])
+  warrantyPeriod   Int?
+  returnPolicy     String?
+  shippingInfo     Json?    // { weight, dimensions, shippingClass }
+  createdBy        String?
+  lastModifiedBy   String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([name])
+  @@index([sku])
+  @@index([category, status])
+  @@index([brand])
+  @@index([isFeatured, status])
+  @@map("admin_products")
+}
+
+model AdminDamageReport {
+  id                String   @id @default(cuid())
+  customer          Json     // { customerId, firstName, lastName, email, phone, address }
+  reportNumber      String   @unique
+  reportDate        DateTime @default(now())
+  reportedBy        Json     // { userId, name, email, phone }
+  propertyAddress   Json     // { street, city, state, zipCode, country, coordinates }
+  damageType        String   // hurricane, flood, wind, fire, earthquake, tornado, storm, hail, other
+  severity          String   // minor, moderate, severe, catastrophic
+  status            String   @default("report_created")
+  description       String
+  affectedAreas     String[] @default([])
+  estimatedCost     Float    @default(0)
+  actualCost        Float?
+  fundingSources    Json?    @default("[]") // [{ source, amount, description, receivedDate, status, notes }]
+  insuranceCoverage String?
+  workflowSteps     Json?    @default("[]") // [{ stepNumber, name, status, startedAt, completedAt, ... }]
+  currentStep       Int      @default(1)
+  assignedAdjuster  Json?    // { adjusterId, fullName, email, phone, ... }
+  assignedVendors   Json?    @default("[]") // [{ vendorId, businessName, taskName, ... }]
+  images            Json?    @default("[]") // [{ url, alt, description, uploadedAt, isPrimary }]
+  notes             String?
+  tags              String[] @default([])
+  priority          String?  @default("medium")
+  createdBy         String?
+  lastModifiedBy    String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([reportNumber])
+  @@index([reportDate(sort: Desc)])
+  @@index([status])
+  @@index([damageType])
+  @@index([severity])
+  @@index([createdAt(sort: Desc)])
+  @@map("admin_damage_reports")
+}
+
+model AdminAdjuster {
+  id                   String   @id @default(cuid())
+  adjusterId           String   @unique
+  photo                String?
+  firstName            String
+  lastName             String
+  email                String   @unique
+  phone                String?
+  companyName          String?
+  address              Json?    // { street, city, state, zipCode, country }
+  certifications       Json?    @default("[]") // [{ name, issuingAuthority, certificateNumber, ... }]
+  specializations      String[] @default([])
+  documents            Json?    @default("[]") // [{ documentNumber, documentType, photoUrl }]
+  states               String[] @default([])
+  licenseNumber        String?
+  yearsOfExperience    Int?
+  status               String   @default("active") // active, inactive, suspended
+  assignedReports      Json?    @default("[]") // [{ reportId, reportNumber, customerId, ... }]
+  totalReportsHandled  Int      @default(0)
+  currentActiveReports Int      @default(0)
+  isAvailable          Boolean  @default(true)
+  availabilityNotes    String?
+  averageRating        Float?
+  totalRatings         Int      @default(0)
+  notes                String?
+  createdBy            String?
+  lastModifiedBy       String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([adjusterId])
+  @@index([email])
+  @@index([status])
+  @@index([isAvailable])
+  @@index([createdAt(sort: Desc)])
+  @@map("admin_adjusters")
+}
+
+model AdminOrder {
+  id                  String   @id @default(cuid())
+  orderId             String   @unique
+  stripeSessionId     String
+  customerEmail       String
+  amountTotalCents    Int?
+  amountTotal         Float?
+  amountSubtotal      Float?
+  shippingAmount      Float?
+  currency            String   @default("usd")
+  paymentStatus       String
+  shippingAddress     Json     // { firstName, lastName, email, phone, line1, line2, city, state, postalCode, country }
+  billingAddress      Json?    // { line1, line2, city, state, postalCode, country }
+  billingSameAsShipping Boolean?
+  lineItems           Json     @default("[]") // [{ productId, name, price, quantity, amount_total, image, ... }]
+  orderCreatedAt      DateTime @default(now())
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([customerEmail])
+  @@index([orderCreatedAt(sort: Desc)])
+  @@index([paymentStatus])
+  @@map("admin_orders")
+}
+
+model AdminVolunteer {
+  id                   String   @id @default(cuid())
+  volunteerId          String   @unique
+  userId               String   @unique
+  dateOfBirth          DateTime?
+  gender               String?
+  bloodGroup           String?
+  profileImage         String?  @default("")
+  idProofType          String?
+  idProofNumber        String?
+  address              Json?    // { street, city, state, zipCode, country }
+  skills               String[] @default([])
+  specializations      String[] @default([])
+  languages            String[] @default([])
+  experience           Json?    @default("{\"years\":0,\"description\":\"\"}")
+  certifications       Json?    @default("[]")
+  trainingCompleted    Json?    @default("[]")
+  availability         String   @default("available") // available, on_mission, unavailable, on_leave
+  availabilitySchedule Json?    @default("{\"weekdays\":true,\"weekends\":true,\"nights\":false,\"preferredShift\":\"any\"}")
+  currentLocation      Json?    // { type, coordinates }
+  preferredWorkAreas   String[] @default([])
+  willingToTravel      Boolean  @default(true)
+  maxTravelDistance    Int      @default(50)
+  assignedDisasters    Json?    @default("[]") // [{ disasterId, assignedAt, ... }]
+  currentMission       String?
+  completedMissions    Int      @default(0)
+  totalHoursServed     Int      @default(0)
+  rating               Float    @default(0)
+  totalReviews         Int      @default(0)
+  badges               Json?    @default("[]")
+  emergencyContact     Json?    // { name, phone, relation, email }
+  healthInfo           Json?    // { medicalConditions, allergies, medications, physicallyFit }
+  hasOwnVehicle        Boolean  @default(false)
+  vehicleType          String?
+  vehicleNumber        String?
+  status               String   @default("active") // active, inactive, suspended, pending_verification
+  verificationStatus   String   @default("pending") // pending, verified, rejected
+  verifiedBy           String?
+  verifiedAt           DateTime?
+  joinedAt             DateTime @default(now())
+  lastActiveAt         DateTime @default(now())
+  adminNotes           String?  @default("")
+  teamId               String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([volunteerId])
+  @@index([userId])
+  @@index([availability])
+  @@index([status])
+  @@map("admin_volunteers")
+}
+
+model AdminVolunteerTeam {
+  id             String   @id @default(cuid())
+  teamId         String   @unique
+  name           String
+  description    String?
+  leadId         String
+  memberIds      String[] @default([])
+  specialization String?
+  status         String   @default("active") // active, inactive, on_mission
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([leadId])
+  @@index([status])
+  @@map("admin_volunteer_teams")
+}
+
+model AdminServiceProvider {
+  id                      String   @id @default(cuid())
+  providerId              String   @unique
+  userId                  String   @unique
+  businessName            String
+  businessType            String?  @default("individual")
+  einNumber               String?
+  registrationNumber      String?
+  stateRegistration       Json?    // { state, registrationNumber }
+  description             String?  @default("")
+  tagline                 String?  @default("")
+  logo                    String?  @default("")
+  coverImage              String?  @default("")
+  gallery                 Json?    @default("[]") // [{ url, caption, uploadedAt }]
+  contactPerson           Json?    // { firstName, lastName, name, designation, phone, email, alternatePhone }
+  website                 String?
+  socialLinks             Json?    // { facebook, twitter, instagram, linkedin, youtube }
+  category                String   // medical, rescue, shelter, ...
+  subcategories           String[] @default([])
+  serviceType             String?
+  services                Json?    @default("[]") // [{ name, description, price, priceType, duration, isActive }]
+  equipmentAvailable      Json?    @default("[]")
+  teamSize                Int      @default(1)
+  vehiclesAvailable       Json?    @default("[]")
+  location                Json     // { type, coordinates, address, suite, city, state, zipCode, country }
+  serviceAreas            Json?    @default("[]")
+  maxServiceRadius        Int      @default(50)
+  operatingHours          Json?    @default("[]") // [{ day, open, close, isOpen }]
+  is24x7Available         Boolean  @default(false)
+  pricing                 Json?    // { type, rate, currency, minimumCharge }
+  paymentMethods          String[] @default([])
+  isAvailableForEmergency Boolean  @default(true)
+  emergencyCharges        Float?   @default(0)
+  emergencyResponseTime   String?
+  yearsOfExperience       Int      @default(0)
+  certifications          Json?    @default("[]")
+  licenses                Json?    @default("[]")
+  insuranceDetails        Json?
+  documents               Json?    @default("[]")
+  rating                  Float    @default(0)
+  totalReviews            Int      @default(0)
+  verified                Boolean  @default(false)
+  verificationStatus      String   @default("pending")
+  verifiedBy              String?
+  verifiedAt              DateTime?
+  totalJobsCompleted      Int      @default(0)
+  totalEmergencyResponses Int      @default(0)
+  status                  String   @default("active")
+  adminNotes              String?  @default("")
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@index([providerId])
+  @@index([userId])
+  @@index([category])
+  @@index([status])
+  @@index([verified])
+  @@map("admin_service_providers")
+}
+
+model AdminCategoryDocReq {
+  id            String   @id @default(cuid())
+  category      String   @unique
+  categoryLabel String
+  documents     Json     @default("[]") // [{ type, label, required }]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("admin_category_doc_reqs")
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  firstName    String
+  lastName     String
+  name         String?
+  email        String   @unique
+  password     String
+  phone        String?  @default("")
+  role         String   @default("volunteer") // super_admin, admin, volunteer, service_provider
+  status       String   @default("active") // active, inactive, suspended, pending
+  avatar       String?  @default("")
+  profilePhoto String?  @default("")
+  dateOfBirth  DateTime?
+  bloodGroup   String?  @default("")
+  gender       String?  @default("")
+  ssnNumber    String?  @default("")
+  aadharNumber String?  @default("")
+  driversLicense Json?  // { number, state, expiryDate }
+  emergencyContact Json? // { firstName, lastName, phone, relation }
+  address      Json?    // { street, apartment, city, state, pincode, zipCode, country }
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([role, status])
+  @@map("admin_auth_users")
+}
