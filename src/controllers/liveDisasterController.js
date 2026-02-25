@@ -1,5 +1,3 @@
-const fetch = require('node-fetch');
-
 // NASA EONET API for live natural events
 const EONET_API = 'https://eonet.gsfc.nasa.gov/api/v3/events';
 

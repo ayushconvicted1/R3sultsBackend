@@ -1,5 +1,3 @@
-const fetch = require('node-fetch');
-
 const EXCHANGE_RATE_API = 'https://api.exchangerate-api.com/v4/latest/USD';
 
 const fallbackRates = {
