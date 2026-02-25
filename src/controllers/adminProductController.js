@@ -106,7 +106,7 @@ exports.get_products = async (req, res, next) => {
 
 exports.post_products = async (req, res, next) => {
   try {
-    const tokenPayload = req.user;
+    const tokenPayload = await req.user;
     if (!tokenPayload) {
       return res.status(401).json({ success: false, message: 'Not authorized. No token provided.' });
     }
@@ -187,6 +187,9 @@ exports.post_products = async (req, res, next) => {
 exports.get_products__id = async (req, res, next) => {
   try {
     const { id } = req.params;
+    if (id === 'undefined') {
+      return res.status(400).json({ success: false, error: 'Invalid product ID' });
+    }
     const product = await prisma.adminProduct.findUnique({ where: { id } });
     if (!product) {
       return res.status(404).json({ success: false, error: 'Product not found' });
@@ -200,8 +203,11 @@ exports.get_products__id = async (req, res, next) => {
 
 exports.put_products__id = async (req, res, next) => {
   try {
-    const tokenPayload = req.user;
+    const tokenPayload = await req.user;
     const { id } = req.params;
+    if (id === 'undefined') {
+      return res.status(400).json({ success: false, error: 'Invalid product ID' });
+    }
     if (!tokenPayload) {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
@@ -256,8 +262,11 @@ exports.put_products__id = async (req, res, next) => {
 
 exports.delete_products__id = async (req, res, next) => {
   try {
-    const tokenPayload = req.user;
+    const tokenPayload = await req.user;
     const { id } = req.params;
+    if (id === 'undefined') {
+      return res.status(400).json({ success: false, error: 'Invalid product ID' });
+    }
     if (!tokenPayload) {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }

@@ -196,7 +196,7 @@ exports.post_volunteers = async (req, res, next) => {
             return res.json({ success: false, error: 'Email already registered' }, { status: 400 });
         }
         // Create user account first
-        const hashedPassword = await bcrypt.hash(body.password || 'volunteer123');
+        const hashedPassword = await bcrypt.hash(body.password || 'volunteer123', 10);
         // Extract firstName and lastName - ensure they're not empty
         let firstName = '';
         let lastName = '';
@@ -220,7 +220,7 @@ exports.post_volunteers = async (req, res, next) => {
         const phone = body.phone ? String(body.phone).trim() : '';
         console.log('=== CREATING USER ===');
         console.log('User data:', { firstName, lastName, email, phone });
-        const user = await prisma.adminprisma.adminUser.create({ data: { data: {
+        const user = await prisma.adminUser.create({ data: {
                     firstName,
                     lastName,
                     name: `${firstName} ${lastName}`.trim(),
@@ -230,7 +230,7 @@ exports.post_volunteers = async (req, res, next) => {
                     role: 'volunteer',
                     status: 'active',
                     address: body.address,
-                } } });
+                } });
         console.log('✅ User created successfully!');
         console.log('Created user:', { id: user.id,
             firstName: user.firstName,
@@ -249,7 +249,7 @@ exports.post_volunteers = async (req, res, next) => {
         });
         console.log('=== END USER CREATION ===');
         // Create volunteer profile - ensure all form fields are saved
-        const volunteer = await prisma.adminprisma.adminVolunteer.create({ data: { data: {
+        const volunteer = await prisma.adminVolunteer.create({ data: {
                     userId: user.id.toString(),
                     dateOfBirth: body.dateOfBirth ? new Date(body.dateOfBirth) : undefined,
                     gender: body.gender,
@@ -296,7 +296,7 @@ exports.post_volunteers = async (req, res, next) => {
                     vehicleNumber: body.vehicleNumber || '',
                     status: body.status || 'active',
                     teamId: body.teamId || undefined,
-                } } });
+                } });
         // Manually populate userId since it's stored as String
         const populatedVolunteer = await prisma.adminVolunteer.findUnique({ where: { id: volunteer.id } });
         if (populatedVolunteer && populatedVolunteer.userId) {
@@ -675,7 +675,7 @@ exports.post_volunteers_seed = async (req, res, next) => {
         ];
         const createdTeams = [];
         for (const teamData of teams) {
-            const team = await prisma.adminprisma.adminVolunteerTeam.create({ data: { data: teamData } });
+            const team = await prisma.adminVolunteerTeam.create({ data: teamData });
             createdTeams.push(team);
         }
         // Sample volunteer data
@@ -1055,10 +1055,10 @@ exports.post_volunteers_seed = async (req, res, next) => {
         const createdVolunteers = [];
         for (const volData of volunteerData) {
             // Create user account
-            const hashedPassword = await bcrypt.hash('volunteer123');
+            const hashedPassword = await bcrypt.hash('volunteer123', 10);
             const firstName = volData.name.split(' ')[0];
             const lastName = volData.name.split(' ').slice(1).join(' ');
-            const user = await prisma.adminprisma.adminUser.create({ data: { data: {
+            const user = await prisma.adminUser.create({ data: {
                         firstName,
                         lastName,
                         name: volData.name,
@@ -1074,9 +1074,9 @@ exports.post_volunteers_seed = async (req, res, next) => {
                             pincode: volData.zipCode,
                             country: 'United States',
                         },
-                    } } });
+                    } });
             // Create volunteer profile
-            const volunteer = await prisma.adminprisma.adminVolunteer.create({ data: { data: {
+            const volunteer = await prisma.adminVolunteer.create({ data: {
                         userId: user.id.toString(),
                         dateOfBirth: new Date(volData.dateOfBirth),
                         gender: volData.gender,
@@ -1126,7 +1126,7 @@ exports.post_volunteers_seed = async (req, res, next) => {
                         totalReviews: Math.floor(Math.random() * 20) + 5,
                         completedMissions: Math.floor(Math.random() * 15),
                         totalHoursServed: Math.floor(Math.random() * 200) + 50,
-                    } } });
+                    } });
             createdVolunteers.push({ volunteer: volunteer, teamIndex: volData.teamIndex, isLead: volData.isLead });
         }
         // Assign volunteers to teams
@@ -1178,8 +1178,8 @@ exports.post_volunteers_mobile_login = async (req, res, next) => {
 
     try {
         const body = req.body;
-        const { volunteerId, email, password } = body;
-        if (!password) {
+        const { volunteerId, email, password, isPasswordless } = body;
+        if (!isPasswordless && !password) {
             return res.json({ success: false, error: 'Password is required' }, { status: 400 });
         }
         if (!volunteerId && !email) {
@@ -1222,11 +1222,15 @@ exports.post_volunteers_mobile_login = async (req, res, next) => {
             return res.json({ success: false, error: 'Invalid account state' }, { status: 500 });
         }
         let isPasswordValid = false;
-        try {
-            isPasswordValid = await bcrypt.compare(String(password), hashedPassword);
-        }
-        catch {
-            return res.json({ success: false, error: 'Invalid password' }, { status: 401 });
+        if (isPasswordless) {
+            isPasswordValid = true;
+        } else {
+            try {
+                isPasswordValid = await bcrypt.compare(String(password), hashedPassword);
+            }
+            catch {
+                return res.json({ success: false, error: 'Invalid password' }, { status: 401 });
+            }
         }
         if (!isPasswordValid) {
             return res.json({ success: false, error: 'Invalid password' }, { status: 401 });

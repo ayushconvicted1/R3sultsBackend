@@ -170,26 +170,26 @@ exports.post_disasters = async (req, res, next) => {
         }
         const body = req.body;
         const { title, description, type, severity, status, location, affectedArea, affectedPopulation, startedAt, } = body;
-        const disaster = await prisma.adminprisma.adminDisaster.create({ data: { data: {
-                    title,
-                    description,
-                    type,
-                    severity,
-                    status: status || 'active',
-                    location: {
-                        type: 'Point',
-                        coordinates: location.coordinates ? (Array.isArray(location.coordinates) ? location.coordinates : [location.coordinates.lng, location.coordinates.lat]) : undefined,
-                        address: location.address,
-                        city: location.city,
-                        state: location.state,
-                        country: location.country || 'USA',
-                    },
-                    affectedArea: affectedArea || 0,
-                    affectedPopulation: affectedPopulation || 0,
-                    reportedBy: tokenPayload.userId,
-                    reportedAt: new Date(),
-                    startedAt: startedAt ? new Date(startedAt) : new Date(),
-                } } });
+        const disaster = await prisma.adminDisaster.create({ data: {
+            title,
+            description,
+            type,
+            severity,
+            status: status || 'active',
+            location: {
+                type: 'Point',
+                coordinates: location.coordinates ? (Array.isArray(location.coordinates) ? location.coordinates : [location.coordinates.lng, location.coordinates.lat]) : undefined,
+                address: location.address,
+                city: location.city,
+                state: location.state,
+                country: location.country || 'USA',
+            },
+            affectedArea: affectedArea || 0,
+            affectedPopulation: affectedPopulation || 0,
+            reportedBy: tokenPayload.userId,
+            reportedAt: new Date(),
+            startedAt: startedAt ? new Date(startedAt) : new Date(),
+        } });
         return res.json({
             success: true,
             data: { disaster },
@@ -254,6 +254,9 @@ exports.put_disasters__id = async (req, res, next) => {
         if (!disaster) {
             return res.json({ success: false, error: 'Disaster not found' }, { status: 404 });
         }
+        // Build update object
+        const updateData = {};
+        
         // Update fields
         const updateFields = [
             'title', 'description', 'type', 'severity', 'status',
@@ -261,49 +264,60 @@ exports.put_disasters__id = async (req, res, next) => {
         ];
         updateFields.forEach((field) => {
             if (body[field] !== undefined) {
-                disaster[field] = body[field];
+                updateData[field] = body[field];
             }
         });
         if (body.location) {
             // Handle coordinates - convert from {lat, lng} to [lng, lat] if needed
-            let coordinates = body.location.coordinates || disaster.location.coordinates;
+            let coordinates = body.location.coordinates || (disaster.location && disaster.location.coordinates);
             if (coordinates && !Array.isArray(coordinates)) {
                 // Convert {lat, lng} to [lng, lat] (GeoJSON format)
                 if (coordinates.lat !== undefined && coordinates.lng !== undefined) {
                     coordinates = [coordinates.lng, coordinates.lat];
                 }
             }
-            disaster.location = {
+            updateData.location = {
                 type: 'Point',
                 coordinates: coordinates,
-                address: body.location.address !== undefined ? body.location.address : disaster.location.address,
-                city: body.location.city !== undefined ? body.location.city : disaster.location.city,
-                state: body.location.state !== undefined ? body.location.state : disaster.location.state,
-                country: body.location.country !== undefined ? (body.location.country || 'USA') : disaster.location.country,
+                address: body.location.address !== undefined ? body.location.address : (disaster.location && disaster.location.address),
+                city: body.location.city !== undefined ? body.location.city : (disaster.location && disaster.location.city),
+                state: body.location.state !== undefined ? body.location.state : (disaster.location && disaster.location.state),
+                country: body.location.country !== undefined ? (body.location.country || 'USA') : (disaster.location && disaster.location.country),
             };
         }
         if (body.casualties) {
-            disaster.casualties = { ...disaster.casualties, ...body.casualties };
+            updateData.casualties = typeof disaster.casualties === 'object' && disaster.casualties !== null 
+                ? { ...disaster.casualties, ...body.casualties } 
+                : body.casualties;
         }
         if (body.resources) {
-            disaster.resources = { ...disaster.resources, ...body.resources };
+            updateData.resources = typeof disaster.resources === 'object' && disaster.resources !== null 
+                ? { ...disaster.resources, ...body.resources } 
+                : body.resources;
         }
         // Add update log
         if (body.updateMessage) {
-            disaster.updates.push({
+            const currentUpdates = Array.isArray(disaster.updates) ? [...disaster.updates] : [];
+            currentUpdates.push({
                 message: body.updateMessage,
                 updatedBy: tokenPayload.userId,
                 updatedAt: new Date(),
             });
+            updateData.updates = currentUpdates;
         }
         // Mark as resolved if status changed to resolved
         if (body.status === 'resolved' && disaster.status !== 'resolved') {
-            disaster.resolvedAt = new Date();
+            updateData.resolvedAt = new Date();
         }
-        // Note: disaster.save() pattern needs prisma.model.update() - see TODO below
+        
+        const updatedDisaster = await prisma.adminDisaster.update({
+            where: { id: id },
+            data: updateData
+        });
+        
         return res.json({
             success: true,
-            data: { disaster },
+            data: { disaster: updatedDisaster },
             message: 'Disaster updated successfully',
         });
     }
@@ -368,12 +382,20 @@ exports.delete_disasters__id = async (req, res, next) => {
                         return toDate > now && (status === 'assigned' || status === 'active');
                     });
                     // If no active assignments, change availability back to 'available'
+                    let availabilityChanged = false;
                     if (!hasActiveAssignments && volunteerDoc.availability === 'on_mission') {
                         volunteerDoc.availability = 'available';
+                        availabilityChanged = true;
                     }
                     // Only save if there was a change
-                    if (beforeLength !== afterLength || volunteerDoc.isModified('availability')) {
-                        // Note: volunteerDoc.save() pattern needs prisma.model.update() - see TODO below
+                    if (beforeLength !== afterLength || availabilityChanged) {
+                        await prisma.adminVolunteer.update({
+                            where: { id: volunteerDoc.id },
+                            data: {
+                                assignedDisasters: volunteerDoc.assignedDisasters,
+                                availability: volunteerDoc.availability
+                            }
+                        });
                     }
                 }
             }
@@ -466,16 +488,23 @@ exports.post_disasters__id_assign_volunteer = async (req, res, next) => {
             volunteerDoc.availability = 'on_mission';
         }
         // Update resources count
-        disaster.resources.volunteersDeployed = disaster.assignedVolunteers.length;
-        await Promise.all([
-            disaster.save(),
-            volunteer.save(),
+        const resources = typeof disaster.resources === 'object' && disaster.resources !== null ? { ...disaster.resources } : { volunteersDeployed: 0 };
+        resources.volunteersDeployed = disaster.assignedVolunteers.length;
+        
+        const [updatedDisaster] = await Promise.all([
+            prisma.adminDisaster.update({
+                where: { id: disasterId },
+                data: { assignedVolunteers: disaster.assignedVolunteers, resources }
+            }),
+            prisma.adminVolunteer.update({
+                where: { id: volunteerId },
+                data: { assignedDisasters: volunteerDoc.assignedDisasters, availability: volunteerDoc.availability }
+            })
         ]);
-        // Populate volunteer details for response
-        await disaster;
+        
         return res.json({
             success: true,
-            data: { disaster },
+            data: { disaster: updatedDisaster },
             message: 'Volunteer assigned successfully',
         });
     }
@@ -529,20 +558,34 @@ exports.delete_disasters__id_assign_volunteer = async (req, res, next) => {
                 return toDate > now && (status === 'assigned' || status === 'active');
             });
             // If no active assignments, change availability back to 'available'
+            let availabilityChanged = false;
             if (!hasActiveAssignments && volunteerDoc.availability === 'on_mission') {
                 volunteerDoc.availability = 'available';
+                availabilityChanged = true;
             }
             // Only save if there was a change
-            if (beforeLength !== afterLength || volunteerDoc.isModified('availability')) {
-                // Note: volunteerDoc.save() pattern needs prisma.model.update() - see TODO below
+            if (beforeLength !== afterLength || availabilityChanged) {
+                await prisma.adminVolunteer.update({
+                    where: { id: volunteerDoc.id },
+                    data: {
+                        assignedDisasters: volunteerDoc.assignedDisasters,
+                        availability: volunteerDoc.availability
+                    }
+                });
             }
         }
         // Update resources count
-        disaster.resources.volunteersDeployed = disaster.assignedVolunteers.length;
-        // Note: disaster.save() pattern needs prisma.model.update() - see TODO below
+        const resources = typeof disaster.resources === 'object' && disaster.resources !== null ? { ...disaster.resources } : { volunteersDeployed: 0 };
+        resources.volunteersDeployed = disaster.assignedVolunteers.length;
+        
+        const updatedDisaster = await prisma.adminDisaster.update({
+            where: { id: disasterId },
+            data: { assignedVolunteers: disaster.assignedVolunteers, resources }
+        });
+        
         return res.json({
             success: true,
-            data: { disaster },
+            data: { disaster: updatedDisaster },
             message: 'Volunteer removed successfully',
         });
     }
