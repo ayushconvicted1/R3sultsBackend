@@ -94,7 +94,7 @@ exports.get_disasters = async (req, res, next) => {
                                 phone: volunteer.userId.phone || '',
                             } : undefined,
                         },
-                        assignedAt: av.assignedAt ? new Date(av.assignedAt).toISOString() : new Date().toISOString(),
+                        assignedAt: (av.assignedAt && !isNaN(new Date(av.assignedAt).valueOf())) ? new Date(av.assignedAt).toISOString() : new Date().toISOString(),
                         assignedBy: av.assignedBy ? { id: av.assignedBy.id?.toString() || '',
                             firstName: av.assignedBy.firstName || '',
                             lastName: av.assignedBy.lastName || '',
@@ -366,7 +366,7 @@ exports.delete_disasters__id = async (req, res, next) => {
         }
         // Update all assigned volunteers - remove this disaster from their assignedDisasters
         if (assignedVolunteerIds.length > 0) {
-            const volunteers = await prisma.adminVolunteer.findMany({ where: { id: { in: assignedVolunteerIds } } });
+            const volunteers = await prisma.volunteer.findMany({ where: { id: { in: assignedVolunteerIds } } });
             for (const volunteer of volunteers) {
                 const volunteerDoc = volunteer;
                 // Remove this disaster from volunteer's assignedDisasters
@@ -389,7 +389,7 @@ exports.delete_disasters__id = async (req, res, next) => {
                     }
                     // Only save if there was a change
                     if (beforeLength !== afterLength || availabilityChanged) {
-                        await prisma.adminVolunteer.update({
+                        await prisma.volunteer.update({
                             where: { id: volunteerDoc.id },
                             data: {
                                 assignedDisasters: volunteerDoc.assignedDisasters,
@@ -445,7 +445,7 @@ exports.post_disasters__id_assign_volunteer = async (req, res, next) => {
             return res.json({ success: false, error: 'Disaster not found' }, { status: 404 });
         }
         // Find volunteer
-        const volunteer = await prisma.adminVolunteer.findUnique({ where: { id: volunteerId } });
+        const volunteer = await prisma.volunteer.findUnique({ where: { id: volunteerId } });
         if (!volunteer) {
             return res.json({ success: false, error: 'Volunteer not found' }, { status: 404 });
         }
@@ -496,7 +496,7 @@ exports.post_disasters__id_assign_volunteer = async (req, res, next) => {
                 where: { id: disasterId },
                 data: { assignedVolunteers: disaster.assignedVolunteers, resources }
             }),
-            prisma.adminVolunteer.update({
+            prisma.volunteer.update({
                 where: { id: volunteerId },
                 data: { assignedDisasters: volunteerDoc.assignedDisasters, availability: volunteerDoc.availability }
             })
@@ -544,7 +544,7 @@ exports.delete_disasters__id_assign_volunteer = async (req, res, next) => {
         // Remove volunteer from disaster
         disaster.assignedVolunteers = disaster.assignedVolunteers.filter((v) => v.volunteerId?.toString() !== volunteerId);
         // Update volunteer's assignedDisasters (new schema)
-        const volunteer = await prisma.adminVolunteer.findUnique({ where: { id: volunteerId } });
+        const volunteer = await prisma.volunteer.findUnique({ where: { id: volunteerId } });
         if (volunteer) {
             const volunteerDoc = volunteer;
             const beforeLength = (volunteerDoc.assignedDisasters || []).length;
@@ -565,7 +565,7 @@ exports.delete_disasters__id_assign_volunteer = async (req, res, next) => {
             }
             // Only save if there was a change
             if (beforeLength !== afterLength || availabilityChanged) {
-                await prisma.adminVolunteer.update({
+                await prisma.volunteer.update({
                     where: { id: volunteerDoc.id },
                     data: {
                         assignedDisasters: volunteerDoc.assignedDisasters,

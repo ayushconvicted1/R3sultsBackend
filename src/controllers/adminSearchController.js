@@ -78,7 +78,7 @@ exports.get_search = async (req, res, next) => {
             });
         });
         // Search Volunteers
-        const volunteers = await prisma.adminVolunteer.findMany({ where: {
+        const volunteers = await prisma.volunteer.findMany({ where: {
                 $or: [
                     { skills: searchRegex },
                     { 'location.city': searchRegex },

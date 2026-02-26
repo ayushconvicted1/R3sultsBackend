@@ -99,7 +99,7 @@ exports.get_mobile_tasks = async (req, res, next) => {
         if (!tokenPayload || tokenPayload.role !== 'volunteer') {
             return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
-        const volunteer = await prisma.adminVolunteer.findFirst({ where: { userId: tokenPayload.userId } });
+        const volunteer = await prisma.volunteer.findFirst({ where: { userId: tokenPayload.userId } });
         if (!volunteer) {
             return res.json({ success: false, error: 'Volunteer not found' }, { status: 404 });
         }
@@ -174,7 +174,7 @@ exports.get_mobile_tasks__disasterId = async (req, res, next) => {
         if (!disasterId || !(typeof disasterId === "string" && disasterId.length > 0)) {
             return res.json({ success: false, error: 'Valid disasterId is required' }, { status: 400 });
         }
-        const volunteer = await prisma.adminVolunteer.findFirst({ where: { userId: tokenPayload.userId } });
+        const volunteer = await prisma.volunteer.findFirst({ where: { userId: tokenPayload.userId } });
         if (!volunteer) {
             return res.json({ success: false, error: 'Volunteer not found' }, { status: 404 });
         }
@@ -232,7 +232,7 @@ exports.post_mobile_tasks_accept = async (req, res, next) => {
         if (!disasterId || !(typeof disasterId === "string" && disasterId.length > 0)) {
             return res.json({ success: false, error: 'Valid disasterId is required' }, { status: 400 });
         }
-        const volunteer = await prisma.adminVolunteer.findFirst({ where: { userId: tokenPayload.userId } });
+        const volunteer = await prisma.volunteer.findFirst({ where: { userId: tokenPayload.userId } });
         if (!volunteer) {
             return res.json({ success: false, error: 'Volunteer not found' }, { status: 404 });
         }
@@ -252,7 +252,7 @@ exports.post_mobile_tasks_accept = async (req, res, next) => {
             return res.json({ success: false, error: 'Task cannot be accepted in current state' }, { status: 400 });
         }
         assignment.status = 'active';
-        await prisma.adminVolunteer.update({
+        await prisma.volunteer.update({
             where: { id: volunteer.id },
             data: { assignedDisasters: assignments }
         });
@@ -287,7 +287,7 @@ exports.post_mobile_tasks_decline = async (req, res, next) => {
         if (!disasterId || !(typeof disasterId === "string" && disasterId.length > 0)) {
             return res.json({ success: false, error: 'Valid disasterId is required' }, { status: 400 });
         }
-        const volunteer = await prisma.adminVolunteer.findFirst({ where: { userId: tokenPayload.userId } });
+        const volunteer = await prisma.volunteer.findFirst({ where: { userId: tokenPayload.userId } });
         if (!volunteer) {
             return res.json({ success: false, error: 'Volunteer not found' }, { status: 404 });
         }
@@ -307,7 +307,7 @@ exports.post_mobile_tasks_decline = async (req, res, next) => {
             return res.json({ success: false, error: 'Completed task cannot be declined' }, { status: 400 });
         }
         assignment.status = 'cancelled';
-        await prisma.adminVolunteer.update({
+        await prisma.volunteer.update({
             where: { id: volunteerId },
             data: { assignedDisasters: assignments }
         });

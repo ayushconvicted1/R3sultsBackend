@@ -78,13 +78,6 @@ exports.getLiveDisasters = async (req, res, next) => {
       console.error('EONET API error:', e.message);
     }
 
-    const currentYear = new Date().getFullYear();
-    const isCurrentYear = (dateStr) => {
-      if (!dateStr) return false;
-      const y = new Date(dateStr).getFullYear();
-      return !isNaN(y) && y === currentYear;
-    };
-
     // Transform EONET data
     const disasters = eonetEvents
       .map(event => {
@@ -114,8 +107,7 @@ exports.getLiveDisasters = async (req, res, next) => {
           source: event.sources[0]?.url || event.link,
           isLive: true,
         };
-      })
-      .filter(d => isCurrentYear(d.date));
+      });
 
     // Fetch ReliefWeb data
     let reliefWebData = [];
@@ -142,8 +134,7 @@ exports.getLiveDisasters = async (req, res, next) => {
             date: item.fields?.date?.created,
             source: item.fields?.url_alias ? `https://reliefweb.int${item.fields.url_alias}` : null,
             isLive: true, fromReliefWeb: true,
-          }))
-          .filter(d => isCurrentYear(d.date));
+          }));
       }
     } catch (e) {
       console.log('ReliefWeb fetch failed, continuing with EONET data');
@@ -158,19 +149,60 @@ exports.getLiveDisasters = async (req, res, next) => {
           reliefWebCount: reliefWebData.length,
           lastUpdated: new Date().toISOString(),
           sources: ['NASA EONET', 'ReliefWeb'],
-          filter: `Current year (${currentYear}) only`,
+          filter: `All open/active events`,
         },
       },
     };
 
-    cachedResult = result;
-    cacheTimestamp = now;
+    // Use Fallback Mock Data if both APIs failed (rate limits/bans)
+    if (result.data.disasters.length === 0) {
+      console.log('Both APIs failed or returned zero events. Injecting US mock fallback data.');
+      result.data.disasters = [
+        {
+          id: 'mock-1', title: 'California Wildfire (Mock)', description: 'Simulated high-priority wildfire.',
+          type: 'wildfire', category: 'Wildfires', severity: 'critical', status: 'active',
+          location: { coordinates: { lat: 36.7783, lng: -119.4179 }, country: 'United States', state: 'California', region: 'California, USA' },
+          date: now.toISOString(), source: 'Fallback Local System', isLive: true
+        },
+        {
+          id: 'mock-2', title: 'Texas Severe Storms (Mock)', description: 'Simulated severe thunderstorm warning.',
+          type: 'cyclone', category: 'Severe Storms', severity: 'high', status: 'active',
+          location: { coordinates: { lat: 31.9686, lng: -99.9018 }, country: 'United States', state: 'Texas', region: 'Texas, USA' },
+          date: now.toISOString(), source: 'Fallback Local System', isLive: true
+        },
+        {
+          id: 'mock-3', title: 'Florida Coastal Flood (Mock)', description: 'Simulated coastal flooding event.',
+          type: 'flood', category: 'Floods', severity: 'medium', status: 'active',
+          location: { coordinates: { lat: 27.9944, lng: -81.7603 }, country: 'United States', state: 'Florida', region: 'Florida, USA' },
+          date: now.toISOString(), source: 'Fallback Local System', isLive: true
+        }
+      ];
+      result.data.metadata.sources.push('R3sults Fallback');
+    }
+
+    // Always cache if we actually got real data
+    if (disasters.length > 0 || reliefWebData.length > 0) {
+      cachedResult = result;
+      cacheTimestamp = now;
+    }
+    
     return res.json(result);
   } catch (error) {
     console.error('Live disasters fetch error:', error);
+    // Return mock data even on top-level failure
     return res.json({
       success: true,
-      data: { disasters: [], metadata: { error: 'Failed to fetch live data', lastUpdated: new Date().toISOString() } },
+      data: { 
+        disasters: [
+          {
+            id: 'mock-1', title: 'General Service Outage Warning', description: 'Upstream services are currently down.',
+            type: 'other', category: 'System', severity: 'medium', status: 'active',
+            location: { coordinates: { lat: 39.8283, lng: -98.5795 }, country: 'United States', state: 'Kansas' },
+            isLive: true
+          }
+        ], 
+        metadata: { error: 'Failed to fetch live data - displayed mock data', lastUpdated: new Date().toISOString() } 
+      },
     });
   }
 };

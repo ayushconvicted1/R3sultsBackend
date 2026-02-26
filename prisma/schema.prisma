@@ -263,6 +263,7 @@ model Volunteer {
   deletedAt             DateTime?
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @updatedAt
+  assignedDisasters     Json?           @default("[]")
 
   @@index([phoneNumber])
   @@index([email])

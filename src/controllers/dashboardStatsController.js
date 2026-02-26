@@ -17,8 +17,8 @@ exports.get_dashboard_stats = async (req, res, next) => {
         const [totalUsers, totalAdmins, totalVolunteers, availableVolunteers, totalServiceProviders, verifiedServiceProviders, activeDisasters, resolvedDisasters, criticalDisasters, pendingEmergencies, inProgressEmergencies, resolvedEmergencies,] = await Promise.all([
             prisma.adminUser.count(),
             prisma.adminUser.count({ where: { role: { in: ['super_admin', 'admin'] } } }),
-            prisma.adminVolunteer.count(),
-            prisma.adminVolunteer.count({ where: { availability: 'available' } }),
+            prisma.volunteer.count(),
+            prisma.volunteer.count({ where: { availability: 'available' } }),
             prisma.adminServiceProvider.count(),
             prisma.adminServiceProvider.count({ where: { verified: true } }),
             prisma.adminDisaster.count({ where: { status: 'active' } }),
@@ -49,7 +49,7 @@ exports.get_dashboard_stats = async (req, res, next) => {
         const lastMonthUsers = await prisma.adminUser.count({
             where: { createdAt: { lt: lastMonth } },
         });
-        const lastMonthVolunteers = await prisma.adminVolunteer.count({
+        const lastMonthVolunteers = await prisma.volunteer.count({
             where: { createdAt: { lt: lastMonth } },
         });
         const userGrowth = lastMonthUsers > 0 ? ((totalUsers - lastMonthUsers) / lastMonthUsers) * 100 : 0;

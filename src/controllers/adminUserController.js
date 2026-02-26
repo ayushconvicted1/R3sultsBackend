@@ -374,7 +374,7 @@ exports.get_users__id = async (req, res, next) => {
         // Get additional profile data
         let profile = null;
         if (user.role === 'volunteer') {
-            profile = await prisma.adminVolunteer.findFirst({ where: { userId: id } });
+            profile = await prisma.volunteer.findFirst({ where: { userId: id } });
         }
         else if (user.role === 'service_provider') {
             profile = await prisma.adminServiceProvider.findFirst({ where: { userId: id } });
@@ -506,7 +506,7 @@ exports.delete_users__id = async (req, res, next) => {
         }
         // Delete associated profiles
         if (user.role === 'volunteer') {
-            await prisma.adminVolunteer.deleteMany({ where: { userId: id } });
+            await prisma.volunteer.deleteMany({ where: { userId: id } });
         }
         else if (user.role === 'service_provider') {
             await prisma.adminServiceProvider.deleteMany({ where: { userId: id } });

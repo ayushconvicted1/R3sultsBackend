@@ -52,7 +52,7 @@ exports.get_reports = async (req, res, next) => {
                 };
                 break;
             case 'volunteer':
-                const volunteers = await prisma.adminVolunteer.findMany({ where: dateFilter });
+                const volunteers = await prisma.volunteer.findMany({ where: dateFilter });
                 reportData = {
                     title: 'Volunteer Report',
                     summary: {
@@ -118,12 +118,12 @@ exports.get_reports = async (req, res, next) => {
                     prisma.adminUser.count({ where: dateFilter }),
                     prisma.adminDisaster.count({ where: dateFilter }),
                     prisma.adminEmergency.count({ where: dateFilter }),
-                    prisma.adminVolunteer.count({ where: dateFilter }),
+                    prisma.volunteer.count({ where: dateFilter }),
                     prisma.adminServiceProvider.count({ where: dateFilter }),
                 ]);
                 const activeDisasters = await prisma.adminDisaster.count({ where: { ...dateFilter, status: 'active' } });
                 const pendingEmergencies = await prisma.adminEmergency.count({ where: { ...dateFilter, status: 'pending' } });
-                const availableVolunteers = await prisma.adminVolunteer.count({ where: { ...dateFilter, availability: 'available' } });
+                const availableVolunteers = await prisma.volunteer.count({ where: { ...dateFilter, availability: 'available' } });
                 const verifiedProviders = await prisma.adminServiceProvider.count({ where: { ...dateFilter, verified: true } });
                 reportData = {
                     title: 'Summary Report',

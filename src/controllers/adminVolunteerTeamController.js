@@ -29,11 +29,11 @@ exports.get_volunteer_teams = async (req, res, next) => {
         // Populate lead and members
         for (const team of teams) {
             if (team.leadId) {
-                const lead = await prisma.adminVolunteer.findUnique({ where: { id: team.leadId } });
+                const lead = await prisma.volunteer.findUnique({ where: { id: team.leadId } });
                 team.lead = lead;
             }
             if (team.memberIds && team.memberIds.length > 0) {
-                const members = await prisma.adminVolunteer.findMany({ where: { id: { in: team.memberIds } } });
+                const members = await prisma.volunteer.findMany({ where: { id: { in: team.memberIds } } });
                 team.members = members;
             }
         }
@@ -85,13 +85,13 @@ exports.post_volunteer_teams = async (req, res, next) => {
         }
         const body = req.body;
         // Validate lead exists
-        const lead = await prisma.adminVolunteer.findUnique({ where: { id: body.leadId } });
+        const lead = await prisma.volunteer.findUnique({ where: { id: body.leadId } });
         if (!lead) {
             return res.json({ success: false, error: 'Team lead not found' }, { status: 400 });
         }
         // Validate members exist
         if (body.memberIds && body.memberIds.length > 0) {
-            const members = await prisma.adminVolunteer.findMany({ where: { id: { in: body.memberIds } } });
+            const members = await prisma.volunteer.findMany({ where: { id: { in: body.memberIds } } });
             if (members.length !== body.memberIds.length) {
                 return res.json({ success: false, error: 'One or more members not found' }, { status: 400 });
             }
@@ -111,11 +111,11 @@ exports.post_volunteer_teams = async (req, res, next) => {
                     status: body.status || 'active',
                 } } });
         // Update volunteers with teamId
-        await prisma.adminVolunteer.updateMany({ where: { id: { in: memberIds } }, data: { teamId: team.id.toString() } });
+        await prisma.volunteer.updateMany({ where: { id: { in: memberIds } }, data: { teamId: team.id.toString() } });
     const populatedTeam = await prisma.adminVolunteerTeam.findUnique({ where: { id: team.id } });
     // Populate lead and members
-    const leadData = await prisma.adminVolunteer.findUnique({ where: { id: team.leadId } });
-    const membersData = await prisma.adminVolunteer.findMany({ where: { id: { in: team.memberIds } } });
+    const leadData = await prisma.volunteer.findUnique({ where: { id: team.leadId } });
+    const membersData = await prisma.volunteer.findMany({ where: { id: { in: team.memberIds } } });
     return res.json({
         success: true,
         data: {
@@ -163,14 +163,14 @@ exports.put_volunteer_teams = async (req, res, next) => {
         }
         // If lead is changing, validate new lead exists
         if (body.leadId && body.leadId !== team.leadId) {
-            const newLead = await prisma.adminVolunteer.findUnique({ where: { id: body.leadId } });
+            const newLead = await prisma.volunteer.findUnique({ where: { id: body.leadId } });
             if (!newLead) {
                 return res.json({ success: false, error: 'New team lead not found' }, { status: 400 });
             }
         }
         // If members are changing, validate they exist
         if (body.memberIds && body.memberIds.length > 0) {
-            const members = await prisma.adminVolunteer.findMany({ where: { id: { in: body.memberIds } } });
+            const members = await prisma.volunteer.findMany({ where: { id: { in: body.memberIds } } });
             if (members.length !== body.memberIds.length) {
                 return res.json({ success: false, error: 'One or more members not found' }, { status: 400 });
             }
@@ -201,12 +201,12 @@ exports.put_volunteer_teams = async (req, res, next) => {
         // Update volunteers' teamId
         // Remove teamId from old members who are no longer in the team
         const removedMembers = oldMemberIds.filter((id) => !memberIds.includes(id.toString()));
-        await prisma.adminVolunteer.updateMany({ where: { id: { in: removedMembers } }, }, { $unset: { teamId: '' } });
+        await prisma.volunteer.updateMany({ where: { id: { in: removedMembers } }, }, { $unset: { teamId: '' } });
         // Add teamId to new members
-        await prisma.adminVolunteer.updateMany({ where: { id: { in: memberIds } }, data: { teamId: id } });
+        await prisma.volunteer.updateMany({ where: { id: { in: memberIds } }, data: { teamId: id } });
     // Populate lead and members
-    const leadData = await prisma.adminVolunteer.findUnique({ where: { id: leadId } });
-    const membersData = await prisma.adminVolunteer.findMany({ where: { id: { in: memberIds } } });
+    const leadData = await prisma.volunteer.findUnique({ where: { id: leadId } });
+    const membersData = await prisma.volunteer.findMany({ where: { id: { in: memberIds } } });
     return res.json({
         success: true,
         data: {
@@ -253,7 +253,7 @@ exports.delete_volunteer_teams = async (req, res, next) => {
         }
         // Remove teamId from all members
         if (team.memberIds && team.memberIds.length > 0) {
-            await prisma.adminVolunteer.updateMany({ where: { id: { in: team.memberIds } }, }, { $unset: { teamId: '' } });
+            await prisma.volunteer.updateMany({ where: { id: { in: team.memberIds } }, }, { $unset: { teamId: '' } });
         }
         // Delete team
         await prisma.adminVolunteerTeam.delete({ where: { id: id } });
