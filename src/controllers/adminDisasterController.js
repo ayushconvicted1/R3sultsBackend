@@ -51,11 +51,9 @@ exports.get_disasters = async (req, res, next) => {
             if (disaster.assignedVolunteers && Array.isArray(disaster.assignedVolunteers)) {
                 disaster.assignedVolunteers = await Promise.all(disaster.assignedVolunteers.map(async (av) => {
                     let volId = typeof av.volunteerId === 'string' ? av.volunteerId : (av.volunteerId?.id || '');
-                    console.log("[DEBUG] get_disasters -> mapping av.volunteerId=", av.volunteerId, " -> volId=", volId);
                     if (volId) {
                         try {
                             const volunteer = await prisma.volunteer.findUnique({ where: { id: volId } });
-                            console.log("[DEBUG] found volunteer?", !!volunteer, volunteer?.id);
                             if (volunteer) {
                                 av.volunteerId = {
                                     id: volunteer.id,
@@ -70,7 +68,6 @@ exports.get_disasters = async (req, res, next) => {
                                         phone: volunteer.phoneNumber || ''
                                     }
                                 };
-                                console.log("[DEBUG] mutated av.volunteerId to:", av.volunteerId.id);
                             }
                         } catch (e) {
                             console.error('Error populating volunteer:', e);
