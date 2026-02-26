@@ -11,7 +11,7 @@ exports.get_disasters = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, message: 'Not authorized. No token provided.' }, { status: 401 });
+            return res.status().json();
         }
         // Get query parameters
         // req.query is already available via Express;
@@ -46,14 +46,34 @@ exports.get_disasters = async (req, res, next) => {
         // Fetch disasters from database
         const disastersRaw = await prisma.adminDisaster.findMany({ where: query });
         const total = await prisma.adminDisaster.count({ where: query });
-        // Manually populate userId for volunteers since it's a string reference
+        // Manually populate volunteer for assignedVolunteers since it's a string reference
         const disasters = await Promise.all(disastersRaw.map(async (disaster) => {
             if (disaster.assignedVolunteers && Array.isArray(disaster.assignedVolunteers)) {
                 disaster.assignedVolunteers = await Promise.all(disaster.assignedVolunteers.map(async (av) => {
-                    if (av.volunteerId && av.volunteerId.userId) {
-                        const user = await prisma.adminUser.findUnique({ where: { id: av.volunteerId.userId } });
-                        if (user) {
-                            av.volunteerId.userId = user;
+                    let volId = typeof av.volunteerId === 'string' ? av.volunteerId : (av.volunteerId?.id || '');
+                    console.log("[DEBUG] get_disasters -> mapping av.volunteerId=", av.volunteerId, " -> volId=", volId);
+                    if (volId) {
+                        try {
+                            const volunteer = await prisma.volunteer.findUnique({ where: { id: volId } });
+                            console.log("[DEBUG] found volunteer?", !!volunteer, volunteer?.id);
+                            if (volunteer) {
+                                av.volunteerId = {
+                                    id: volunteer.id,
+                                    volunteerId: volunteer.id.substring(Math.max(0, volunteer.id.length - 8)).toUpperCase(),
+                                    fullName: volunteer.fullName,
+                                    userId: {
+                                        id: volunteer.id,
+                                        firstName: (volunteer.fullName || '').split(' ')[0] || '',
+                                        lastName: (volunteer.fullName || '').split(' ').slice(1).join(' ') || '',
+                                        name: volunteer.fullName || 'Unknown User',
+                                        email: volunteer.email || '',
+                                        phone: volunteer.phoneNumber || ''
+                                    }
+                                };
+                                console.log("[DEBUG] mutated av.volunteerId to:", av.volunteerId.id);
+                            }
+                        } catch (e) {
+                            console.error('Error populating volunteer:', e);
                         }
                     }
                     return av;
@@ -144,11 +164,7 @@ exports.get_disasters = async (req, res, next) => {
     }
     catch (error) {
         console.error('Get disasters error:', error);
-        return res.json({
-            success: false,
-            error: error.message || 'Internal server error',
-            details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-        }, { status: 500 });
+        return res.status().json();
     }
 
   } catch (error) {
@@ -163,10 +179,10 @@ exports.post_disasters = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status().json();
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status().json();
         }
         const body = req.body;
         const { title, description, type, severity, status, location, affectedArea, affectedPopulation, startedAt, } = body;
@@ -198,7 +214,7 @@ exports.post_disasters = async (req, res, next) => {
     }
     catch (error) {
         console.error('Create disaster error:', error);
-        return res.json({ success: false, error: 'Internal server error' }, { status: 500 });
+        return res.status().json();
     }
 
   } catch (error) {
@@ -215,11 +231,11 @@ exports.get_disasters__id = async (req, res, next) => {
         const tokenPayload = await req.user;
         const { id } = req.params;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status().json();
         }
         const disaster = await prisma.adminDisaster.findUnique({ where: { id: id } });
         if (!disaster) {
-            return res.json({ success: false, error: 'Disaster not found' }, { status: 404 });
+            return res.status().json();
         }
         return res.json({
             success: true,
@@ -228,7 +244,7 @@ exports.get_disasters__id = async (req, res, next) => {
     }
     catch (error) {
         console.error('Get disaster error:', error);
-        return res.json({ success: false, error: 'Internal server error' }, { status: 500 });
+        return res.status().json();
     }
 
   } catch (error) {
@@ -244,15 +260,15 @@ exports.put_disasters__id = async (req, res, next) => {
         const tokenPayload = await req.user;
         const { id } = req.params;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status().json();
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status().json();
         }
         const body = req.body;
         const disaster = await prisma.adminDisaster.findUnique({ where: { id: id } });
         if (!disaster) {
-            return res.json({ success: false, error: 'Disaster not found' }, { status: 404 });
+            return res.status().json();
         }
         // Build update object
         const updateData = {};
@@ -323,7 +339,7 @@ exports.put_disasters__id = async (req, res, next) => {
     }
     catch (error) {
         console.error('Update disaster error:', error);
-        return res.json({ success: false, error: 'Internal server error' }, { status: 500 });
+        return res.status().json();
     }
 
   } catch (error) {
@@ -339,15 +355,15 @@ exports.delete_disasters__id = async (req, res, next) => {
         const tokenPayload = await req.user;
         const { id } = req.params;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status().json();
         }
         if (!true) {
-            return res.json({ success: false, error: 'Only Super Admin can delete disasters' }, { status: 403 });
+            return res.status().json();
         }
         // Find the disaster first to get assigned volunteers
         const disaster = await prisma.adminDisaster.findUnique({ where: { id: id } });
         if (!disaster) {
-            return res.json({ success: false, error: 'Disaster not found' }, { status: 404 });
+            return res.status().json();
         }
         // Get all assigned volunteer IDs before deleting
         const assignedVolunteerIds = [];
@@ -412,7 +428,7 @@ exports.delete_disasters__id = async (req, res, next) => {
     }
     catch (error) {
         console.error('Delete disaster error:', error);
-        return res.json({ success: false, error: 'Internal server error' }, { status: 500 });
+        return res.status().json();
     }
 
   } catch (error) {
@@ -429,30 +445,30 @@ exports.post_disasters__id_assign_volunteer = async (req, res, next) => {
         const tokenPayload = await req.user;
         const { id: disasterId } = req.params;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status().json();
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         const body = req.body;
         const { volunteerId, fromDate, toDate } = body;
         if (!volunteerId) {
-            return res.json({ success: false, error: 'Volunteer ID is required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Volunteer ID is required' });
         }
         // Find disaster
         const disaster = await prisma.adminDisaster.findUnique({ where: { id: disasterId } });
         if (!disaster) {
-            return res.json({ success: false, error: 'Disaster not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Disaster not found' });
         }
         // Find volunteer
         const volunteer = await prisma.volunteer.findUnique({ where: { id: volunteerId } });
         if (!volunteer) {
-            return res.json({ success: false, error: 'Volunteer not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Volunteer not found' });
         }
         // Check if volunteer is already assigned to this disaster
         const existingAssignment = disaster.assignedVolunteers.find((v) => v.volunteerId?.toString() === volunteerId);
         if (existingAssignment) {
-            return res.json({ success: false, error: 'Volunteer is already assigned to this disaster' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Volunteer is already assigned to this disaster' });
         }
         // Check if volunteer is on mission (has active assignments)
         const volunteerDoc = volunteer;
@@ -463,7 +479,7 @@ exports.post_disasters__id_assign_volunteer = async (req, res, next) => {
             return toDate > now && (status === 'assigned' || status === 'active');
         });
         if (volunteerDoc.availability === 'on_mission' || hasActiveAssignments) {
-            return res.json({ success: false, error: 'Volunteer is currently on mission and cannot be assigned to another disaster until their current assignment period ends' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Volunteer is currently on mission and cannot be assigned to another disaster until their current assignment period ends' });
         }
         // Add volunteer to disaster
         disaster.assignedVolunteers.push({
@@ -510,7 +526,7 @@ exports.post_disasters__id_assign_volunteer = async (req, res, next) => {
     }
     catch (error) {
         console.error('Assign volunteer error:', error);
-        return res.json({ success: false, error: 'Internal server error' }, { status: 500 });
+        return res.status().json();
     }
 
   } catch (error) {
@@ -526,20 +542,20 @@ exports.delete_disasters__id_assign_volunteer = async (req, res, next) => {
         const tokenPayload = await req.user;
         const { id: disasterId } = req.params;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status().json();
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status().json();
         }
         // req.query is already available via Express;
         const volunteerId = req.query['volunteerId'];
         if (!volunteerId) {
-            return res.json({ success: false, error: 'Volunteer ID is required' }, { status: 400 });
+            return res.status().json();
         }
         // Find disaster
         const disaster = await prisma.adminDisaster.findUnique({ where: { id: disasterId } });
         if (!disaster) {
-            return res.json({ success: false, error: 'Disaster not found' }, { status: 404 });
+            return res.status().json();
         }
         // Remove volunteer from disaster
         disaster.assignedVolunteers = disaster.assignedVolunteers.filter((v) => v.volunteerId?.toString() !== volunteerId);
@@ -591,7 +607,7 @@ exports.delete_disasters__id_assign_volunteer = async (req, res, next) => {
     }
     catch (error) {
         console.error('Remove volunteer error:', error);
-        return res.json({ success: false, error: 'Internal server error' }, { status: 500 });
+        return res.status().json();
     }
 
   } catch (error) {

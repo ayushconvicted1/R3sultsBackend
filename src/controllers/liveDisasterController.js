@@ -162,19 +162,19 @@ exports.getLiveDisasters = async (req, res, next) => {
           id: 'mock-1', title: 'California Wildfire (Mock)', description: 'Simulated high-priority wildfire.',
           type: 'wildfire', category: 'Wildfires', severity: 'critical', status: 'active',
           location: { coordinates: { lat: 36.7783, lng: -119.4179 }, country: 'United States', state: 'California', region: 'California, USA' },
-          date: now.toISOString(), source: 'Fallback Local System', isLive: true
+          date: new Date(now).toISOString(), source: 'Fallback Local System', isLive: true
         },
         {
           id: 'mock-2', title: 'Texas Severe Storms (Mock)', description: 'Simulated severe thunderstorm warning.',
           type: 'cyclone', category: 'Severe Storms', severity: 'high', status: 'active',
           location: { coordinates: { lat: 31.9686, lng: -99.9018 }, country: 'United States', state: 'Texas', region: 'Texas, USA' },
-          date: now.toISOString(), source: 'Fallback Local System', isLive: true
+          date: new Date(now).toISOString(), source: 'Fallback Local System', isLive: true
         },
         {
           id: 'mock-3', title: 'Florida Coastal Flood (Mock)', description: 'Simulated coastal flooding event.',
           type: 'flood', category: 'Floods', severity: 'medium', status: 'active',
           location: { coordinates: { lat: 27.9944, lng: -81.7603 }, country: 'United States', state: 'Florida', region: 'Florida, USA' },
-          date: now.toISOString(), source: 'Fallback Local System', isLive: true
+          date: new Date(now).toISOString(), source: 'Fallback Local System', isLive: true
         }
       ];
       result.data.metadata.sources.push('R3sults Fallback');
