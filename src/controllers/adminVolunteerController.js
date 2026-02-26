@@ -612,7 +612,7 @@ exports.post_volunteers__id_assign_disaster = async (req, res, next) => {
         await prisma.adminVolunteer.update({
             where: { id: volunteer.id },
             data: {
-                assignedDisasters: assignments,
+                assignedDisasters: volunteer.assignedDisasters,
                 availability: 'on_mission'
             }
         });

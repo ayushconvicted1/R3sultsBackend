@@ -3,6 +3,21 @@ const weather = require('../controllers/weatherController');
 
 /**
  * @swagger
+ * /weather:
+ *   get:
+ *     summary: Get dashboard weather data (multi, onecall, alerts)
+ *     tags: [Weather]
+ *     parameters:
+ *       - in: query
+ *         name: type
+ *         schema: { type: string }
+ *     responses:
+ *       200: { description: Dashboard weather data }
+ */
+router.get('/', weather.dashboardWeather);
+
+/**
+ * @swagger
  * /weather/current:
  *   get:
  *     summary: Get current weather by city
