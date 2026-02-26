@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const { body } = require('express-validator');
 const validate = require('../middleware/validate');
-const { authenticate, optionalAuth, requireRole } = require('../middleware/auth');
+const { authenticate, requireRole } = require('../middleware/auth');
 const rateLimit = require('express-rate-limit');
 const product = require('../controllers/productController');
 
@@ -11,7 +11,7 @@ const adminLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 50 });
  * @swagger
  * /products:
  *   get:
- *     summary: List all products
+ *     summary: List all products (public)
  *     tags: [Products]
  *     responses:
  *       200: { description: List of products }
@@ -34,7 +34,7 @@ const adminLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 50 });
  *     responses:
  *       201: { description: Product created }
  */
-router.get('/', optionalAuth, product.getAllProducts);
+router.get('/', product.getAllProducts);
 router.post('/', authenticate, requireRole('SUPER_ADMIN', 'ADMIN'), adminLimiter, validate([
   body('name').notEmpty(),
   body('price').isFloat({ min: 0 }),
