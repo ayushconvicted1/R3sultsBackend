@@ -35,6 +35,7 @@ exports.getProfile = async (req, res, next) => {
       include: {
         groups: { include: { members: { include: { user: true } } } },
         members: { include: { group: true } },
+        addresses: { orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }] },
       },
     });
     res.json({ success: true, data: { user: sanitizeUser(user) } });
@@ -79,6 +80,7 @@ exports.updateProfile = async (req, res, next) => {
   }
 };
 
+// Legacy single-address update (backward compatibility)
 exports.updateAddress = async (req, res, next) => {
   try {
     const { address, city, state, country, pincode } = req.body;
@@ -91,6 +93,134 @@ exports.updateAddress = async (req, res, next) => {
 
     const user = await prisma.user.update({ where: { id: req.user.id }, data });
     res.json({ success: true, message: 'Address updated successfully', data: { user: sanitizeUser(user) } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─── Multiple Address CRUD ───
+
+exports.getAddresses = async (req, res, next) => {
+  try {
+    const addresses = await prisma.userAddress.findMany({
+      where: { userId: req.user.id },
+      orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
+    });
+    res.json({ success: true, data: { addresses } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.addAddress = async (req, res, next) => {
+  try {
+    const { label, address, city, state, country, pincode, isDefault } = req.body;
+
+    if (!address || !city || !state || !pincode) {
+      return res.status(400).json({ success: false, message: 'Address, city, state, and pincode are required' });
+    }
+
+    // If this is set as default, or it's the first address, unset others
+    const existingCount = await prisma.userAddress.count({ where: { userId: req.user.id } });
+    const shouldBeDefault = isDefault || existingCount === 0;
+
+    if (shouldBeDefault) {
+      await prisma.userAddress.updateMany({
+        where: { userId: req.user.id, isDefault: true },
+        data: { isDefault: false },
+      });
+    }
+
+    const newAddress = await prisma.userAddress.create({
+      data: {
+        userId: req.user.id,
+        label: label || null,
+        address,
+        city,
+        state,
+        country: country || 'India',
+        pincode,
+        isDefault: shouldBeDefault,
+      },
+    });
+
+    res.status(201).json({ success: true, message: 'Address added successfully', data: { address: newAddress } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.updateAddressById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { label, address, city, state, country, pincode } = req.body;
+
+    // Verify ownership
+    const existing = await prisma.userAddress.findFirst({ where: { id, userId: req.user.id } });
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Address not found' });
+    }
+
+    const data = {};
+    if (label !== undefined) data.label = label;
+    if (address !== undefined) data.address = address;
+    if (city !== undefined) data.city = city;
+    if (state !== undefined) data.state = state;
+    if (country !== undefined) data.country = country;
+    if (pincode !== undefined) data.pincode = pincode;
+
+    const updated = await prisma.userAddress.update({ where: { id }, data });
+    res.json({ success: true, message: 'Address updated successfully', data: { address: updated } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.deleteAddress = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const existing = await prisma.userAddress.findFirst({ where: { id, userId: req.user.id } });
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Address not found' });
+    }
+
+    await prisma.userAddress.delete({ where: { id } });
+
+    // If we deleted the default, promote the next one
+    if (existing.isDefault) {
+      const next = await prisma.userAddress.findFirst({
+        where: { userId: req.user.id },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (next) {
+        await prisma.userAddress.update({ where: { id: next.id }, data: { isDefault: true } });
+      }
+    }
+
+    res.json({ success: true, message: 'Address deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.setDefaultAddress = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const existing = await prisma.userAddress.findFirst({ where: { id, userId: req.user.id } });
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Address not found' });
+    }
+
+    // Unset all defaults, then set the chosen one
+    await prisma.userAddress.updateMany({
+      where: { userId: req.user.id, isDefault: true },
+      data: { isDefault: false },
+    });
+    const updated = await prisma.userAddress.update({ where: { id }, data: { isDefault: true } });
+
+    res.json({ success: true, message: 'Default address updated', data: { address: updated } });
   } catch (error) {
     next(error);
   }

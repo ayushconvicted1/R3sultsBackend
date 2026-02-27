@@ -64,6 +64,93 @@ router.patch('/profile', [
  */
 router.patch('/address', user.updateAddress);
 
+// ─── Multiple Address CRUD Routes ───
+
+/**
+ * @swagger
+ * /user/addresses:
+ *   get:
+ *     summary: Get all user addresses
+ *     tags: [User]
+ *     security: [{ BearerAuth: [] }]
+ *     responses:
+ *       200: { description: List of addresses }
+ *   post:
+ *     summary: Add a new address
+ *     tags: [User]
+ *     security: [{ BearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [address, city, state, pincode]
+ *             properties:
+ *               label: { type: string }
+ *               address: { type: string }
+ *               city: { type: string }
+ *               state: { type: string }
+ *               country: { type: string }
+ *               pincode: { type: string }
+ *               isDefault: { type: boolean }
+ *     responses:
+ *       201: { description: Address created }
+ */
+router.get('/addresses', user.getAddresses);
+router.post('/addresses', validate([
+  body('address').notEmpty().withMessage('Address is required'),
+  body('city').notEmpty().withMessage('City is required'),
+  body('state').notEmpty().withMessage('State is required'),
+  body('pincode').notEmpty().withMessage('Pincode is required'),
+]), user.addAddress);
+
+/**
+ * @swagger
+ * /user/addresses/{id}:
+ *   patch:
+ *     summary: Update an address
+ *     tags: [User]
+ *     security: [{ BearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200: { description: Address updated }
+ *   delete:
+ *     summary: Delete an address
+ *     tags: [User]
+ *     security: [{ BearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200: { description: Address deleted }
+ */
+router.patch('/addresses/:id', user.updateAddressById);
+router.delete('/addresses/:id', user.deleteAddress);
+
+/**
+ * @swagger
+ * /user/addresses/{id}/default:
+ *   patch:
+ *     summary: Set address as default
+ *     tags: [User]
+ *     security: [{ BearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200: { description: Default address updated }
+ */
+router.patch('/addresses/:id/default', user.setDefaultAddress);
+
 /**
  * @swagger
  * /user/emergency-contact:
