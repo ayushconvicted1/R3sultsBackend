@@ -48,13 +48,14 @@ const { uploadToCloudinary } = require('../middleware/upload');
 
 exports.updateProfile = async (req, res, next) => {
   try {
-    const { fullName, dateOfBirth, gender, profilePictureUrl } = req.body;
+    const { fullName, dateOfBirth, gender, profilePictureUrl, phoneNumber } = req.body;
     const data = {};
     
     // Handle text fields
     if (fullName !== undefined) data.fullName = fullName;
     if (dateOfBirth !== undefined) data.dateOfBirth = new Date(dateOfBirth);
     if (gender !== undefined) data.gender = gender;
+    if (phoneNumber !== undefined) data.phoneNumber = phoneNumber;
     
     // Handle direct URL update (e.g. if sending string)
     if (profilePictureUrl !== undefined) data.profilePictureUrl = profilePictureUrl;
