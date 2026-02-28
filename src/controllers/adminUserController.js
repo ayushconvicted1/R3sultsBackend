@@ -11,10 +11,10 @@ exports.get_users = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         // req.query is already available via Express;
         const page = parseInt(req.query['page'] || '1');
@@ -110,7 +110,7 @@ exports.get_users = async (req, res, next) => {
     }
     catch (error) {
         console.error('Get users error:', error);
-        return res.json({ success: false, error: error.message || 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
     }
 
   } catch (error) {
@@ -125,24 +125,24 @@ exports.post_users = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         const body = req.body;
         // Check permissions
         if (body.role === 'SUPER_ADMIN' || body.role === 'ADMIN') {
             if (!tokenPayload || !true) {
-                return res.json({ success: false, error: 'Only Super Admin can create admin users' }, { status: 403 });
+                return res.status(403).json({ success: false, error: 'Only Super Admin can create admin users' });
             }
         }
         else {
             if (!true) {
-                return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+                return res.status(403).json({ success: false, error: 'Permission denied' });
             }
         }
         // Check if email exists
         const existingUser = await prisma.adminUser.findFirst({ where: { email: body.email.toLowerCase() } });
         if (existingUser) {
-            return res.json({ success: false, error: 'Email already exists' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Email already exists' });
         }
         // Hash password
         const hashedPassword = await bcrypt.hash(body.password);
@@ -211,7 +211,7 @@ exports.post_users = async (req, res, next) => {
     }
     catch (error) {
         console.error('Create user error:', error);
-        return res.json({ success: false, error: error.message || 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
     }
 
   } catch (error) {
@@ -226,26 +226,26 @@ exports.put_users = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         // req.query is already available via Express;
         const id = req.query['id'];
         if (!id || id === 'undefined') return res.status(400).json({ success: false, error: 'Invalid user ID provided' });
         if (!id) {
-            return res.json({ success: false, error: 'User ID required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'User ID required' });
         }
         const body = req.body;
         // Find user
         const existingUser = await prisma.adminUser.findUnique({ where: { id: id } });
         if (!existingUser) {
-            return res.json({ success: false, error: 'User not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'User not found' });
         }
         // Prevent editing super_admin by non-super_admin
         if (existingUser.role === 'SUPER_ADMIN' && tokenPayload.role !== 'SUPER_ADMIN') {
-            return res.json({ success: false, error: 'Cannot edit super admin' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Cannot edit super admin' });
         }
         // Handle firstName/lastName
         let firstName = body.firstName !== undefined ? body.firstName : existingUser.firstName;
@@ -305,7 +305,7 @@ exports.put_users = async (req, res, next) => {
     }
     catch (error) {
         console.error('Update user error:', error);
-        return res.json({ success: false, error: error.message || 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
     }
 
   } catch (error) {
@@ -320,24 +320,24 @@ exports.delete_users = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         // req.query is already available via Express;
         const id = req.query['id'];
         if (!id || id === 'undefined') return res.status(400).json({ success: false, error: 'Invalid user ID provided' });
         if (!id) {
-            return res.json({ success: false, error: 'User ID required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'User ID required' });
         }
         const user = await prisma.adminUser.findUnique({ where: { id: id } });
         if (!user) {
-            return res.json({ success: false, error: 'User not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'User not found' });
         }
         // Prevent deleting super_admin
         if (user.role === 'SUPER_ADMIN') {
-            return res.json({ success: false, error: 'Cannot delete super admin' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Cannot delete super admin' });
         }
         // Delete user (admin and super_admin don't have related profiles)
         await prisma.adminUser.delete({ where: { id: id } });
@@ -348,7 +348,7 @@ exports.delete_users = async (req, res, next) => {
     }
     catch (error) {
         console.error('Delete user error:', error);
-        return res.json({ success: false, error: error.message || 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
     }
 
   } catch (error) {
@@ -365,11 +365,11 @@ exports.get_users__id = async (req, res, next) => {
         const tokenPayload = await req.user;
         const { id } = req.params;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         const user = await prisma.adminUser.findUnique({ where: { id: id } });
         if (!user) {
-            return res.json({ success: false, error: 'User not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'User not found' });
         }
         // Get additional profile data
         let profile = null;
@@ -386,7 +386,7 @@ exports.get_users__id = async (req, res, next) => {
     }
     catch (error) {
         console.error('Get user error:', error);
-        return res.json({ success: false, error: 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (error) {
@@ -402,28 +402,28 @@ exports.put_users__id = async (req, res, next) => {
         const tokenPayload = await req.user;
         const { id } = req.params;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         const body = req.body;
         const { name, email, phone, role, status, address, password } = body;
         const user = await prisma.adminUser.findUnique({ where: { id: id } });
         if (!user) {
-            return res.json({ success: false, error: 'User not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'User not found' });
         }
         // Admin cannot edit super_admin or other admins
         if (tokenPayload.role === 'ADMIN') {
             if (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') {
-                return res.json({ success: false, error: 'You cannot edit this user' }, { status: 403 });
+                return res.status(403).json({ success: false, error: 'You cannot edit this user' });
             }
         }
         // Check email uniqueness
         if (email && email !== user.email) {
             const existingUser = await prisma.adminUser.findFirst({ where: { email: email.toLowerCase() } });
             if (existingUser) {
-                return res.json({ success: false, error: 'Email already exists' }, { status: 400 });
+                return res.status(400).json({ success: false, error: 'Email already exists' });
             }
         }
         // Update fields
@@ -475,7 +475,7 @@ exports.put_users__id = async (req, res, next) => {
     }
     catch (error) {
         console.error('Update user error:', error);
-        return res.json({ success: false, error: 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (error) {
@@ -491,18 +491,18 @@ exports.delete_users__id = async (req, res, next) => {
         const tokenPayload = await req.user;
         const { id } = req.params;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Only Super Admin can delete users' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Only Super Admin can delete users' });
         }
         const user = await prisma.adminUser.findUnique({ where: { id: id } });
         if (!user) {
-            return res.json({ success: false, error: 'User not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'User not found' });
         }
         // Cannot delete self
         if (user.id.toString() === tokenPayload.userId) {
-            return res.json({ success: false, error: 'Cannot delete your own account' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Cannot delete your own account' });
         }
         // Delete associated profiles
         if (user.role === 'volunteer') {
@@ -519,7 +519,7 @@ exports.delete_users__id = async (req, res, next) => {
     }
     catch (error) {
         console.error('Delete user error:', error);
-        return res.json({ success: false, error: 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (error) {

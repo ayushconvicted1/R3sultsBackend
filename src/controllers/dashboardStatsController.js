@@ -11,7 +11,7 @@ exports.get_dashboard_stats = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         // Get counts
         const [totalUsers, totalAdmins, totalVolunteers, availableVolunteers, totalServiceProviders, verifiedServiceProviders, activeDisasters, resolvedDisasters, criticalDisasters, pendingEmergencies, inProgressEmergencies, resolvedEmergencies,] = await Promise.all([
@@ -83,7 +83,7 @@ exports.get_dashboard_stats = async (req, res, next) => {
     }
     catch (error) {
         console.error('Dashboard stats error:', error);
-        return res.json({ success: false, error: 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (error) {

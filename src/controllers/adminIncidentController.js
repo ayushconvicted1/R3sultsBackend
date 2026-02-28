@@ -11,10 +11,10 @@ exports.get_incidents = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         // req.query is already available via Express;
         const id = req.query['id'];
@@ -25,7 +25,7 @@ exports.get_incidents = async (req, res, next) => {
                 const incidentId = id;
                 const incident = await prisma.adminIncident.findUnique({ where: { id: incidentId } });
                 if (!incident) {
-                    return res.json({ success: false, error: 'Incident not found' }, { status: 404 });
+                    return res.status(404).json({ success: false, error: 'Incident not found' });
                 }
                 return res.json({
                     success: true,
@@ -48,7 +48,7 @@ exports.get_incidents = async (req, res, next) => {
                 });
             }
             catch (error) {
-                return res.json({ success: false, error: 'Invalid incident ID format' }, { status: 400 });
+                return res.status(400).json({ success: false, error: 'Invalid incident ID format' });
             }
         }
         const page = parseInt(req.query['page'] || '1');
@@ -105,7 +105,7 @@ exports.get_incidents = async (req, res, next) => {
     }
     catch (error) {
         console.error('Get incidents error:', error);
-        return res.json({ success: false, error: error.message || 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
     }
 
   } catch (error) {
@@ -120,10 +120,10 @@ exports.post_incidents = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         const body = req.body;
         // Validate required fields
@@ -150,7 +150,7 @@ exports.post_incidents = async (req, res, next) => {
         // Validate email format
         const emailRegex = /^\S+@\S+\.\S+$/;
         if (!emailRegex.test(body.reportedBy.email)) {
-            return res.json({ success: false, error: 'Please enter a valid email address' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Please enter a valid email address' });
         }
         // Generate ticket number
         const year = new Date().getFullYear();
@@ -183,7 +183,7 @@ exports.post_incidents = async (req, res, next) => {
         if (Array.isArray(incident)) {
             incident = incident[0];
         }
-        return res.json({
+        return res.status(201).json({
             success: true,
             data: {
                 id: incident.id.toString(),
@@ -201,15 +201,15 @@ exports.post_incidents = async (req, res, next) => {
                 createdAt: incident.createdAt?.toISOString() || new Date().toISOString(),
                 updatedAt: incident.updatedAt?.toISOString() || new Date().toISOString(),
             },
-        }, { status: 201 });
+        });
     }
     catch (error) {
         console.error('Create incident error:', error);
-        return res.json({
+        return res.status(500).json({
             success: false,
             error: error.message || 'Internal server error',
             details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-        }, { status: 500 });
+        });
     }
 
   } catch (error) {
@@ -224,25 +224,25 @@ exports.put_incidents = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         const body = req.body;
         if (!body.id) {
-            return res.json({ success: false, error: 'Incident ID is required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Incident ID is required' });
         }
         let incidentId;
         try {
             incidentId = body.id;
         }
         catch (error) {
-            return res.json({ success: false, error: 'Invalid incident ID format' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Invalid incident ID format' });
         }
         const incident = await prisma.adminIncident.findUnique({ where: { id: incidentId } });
         if (!incident) {
-            return res.json({ success: false, error: 'Incident not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Incident not found' });
         }
         const updateData = {};
         const timelineUpdates = [];
@@ -328,7 +328,7 @@ exports.put_incidents = async (req, res, next) => {
         }
     }
     if (Object.keys(updateData).length === 0 && !updateOps.$push) {
-        return res.json({ success: false, error: 'No fields to update' }, { status: 400 });
+        return res.status(400).json({ success: false, error: 'No fields to update' });
     }
     // Use Prisma for update
     const updateOpsPrisma = { ...updateOps };
@@ -364,7 +364,7 @@ exports.put_incidents = async (req, res, next) => {
     }
     catch (error) {
         console.error('Update incident error:', error);
-        return res.json({ success: false, error: error.message || 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
     }
 
   } catch (error) {
@@ -379,27 +379,27 @@ exports.delete_incidents = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         // req.query is already available via Express;
         const id = req.query['id'];
         if (!id || id === 'undefined') return res.status(400).json({ success: false, error: 'Invalid incident ID provided' });
         if (!id) {
-            return res.json({ success: false, error: 'Incident ID is required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Incident ID is required' });
         }
         let incidentId;
         try {
             incidentId = id;
         }
         catch (error) {
-            return res.json({ success: false, error: 'Invalid incident ID format' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Invalid incident ID format' });
         }
         const deleteResult = await prisma.adminIncident.deleteMany({ where: { id: incidentId } });
         if (deleteResult.deletedCount === 0) {
-            return res.json({ success: false, error: 'Incident not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Incident not found' });
         }
         return res.json({
             success: true,
@@ -408,7 +408,7 @@ exports.delete_incidents = async (req, res, next) => {
     }
     catch (error) {
         console.error('Delete incident error:', error);
-        return res.json({ success: false, error: error.message || 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
     }
 
   } catch (error) {
@@ -681,11 +681,11 @@ exports.post_incidents_seed = async (req, res, next) => {
     }
     catch (error) {
         console.error('Seed incidents error:', error);
-        return res.json({
+        return res.status(500).json({
             success: false,
             error: error.message || 'Internal server error',
             details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-        }, { status: 500 });
+        });
     }
 
   } catch (error) {

@@ -11,10 +11,10 @@ exports.get_services = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         // req.query is already available via Express;
         const page = parseInt(req.query['page'] || '1');
@@ -57,7 +57,7 @@ exports.get_services = async (req, res, next) => {
     }
     catch (error) {
         console.error('Get service providers error:', error);
-        return res.json({ success: false, error: 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (error) {
@@ -72,10 +72,10 @@ exports.post_services = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         const body = req.body;
         // Check if user exists for this provider or create one
@@ -99,7 +99,7 @@ exports.post_services = async (req, res, next) => {
             userId = existingUser.id;
         }
         if (!userId) {
-            return res.json({ success: false, error: 'User ID or contact email is required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'User ID or contact email is required' });
         }
         // Ensure location has proper GeoJSON format - USA based
         const locationData = body.location ? {
@@ -159,7 +159,7 @@ exports.post_services = async (req, res, next) => {
     }
     catch (error) {
         console.error('Create service provider error:', error);
-        return res.json({ success: false, error: error.message || 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
     }
 
   } catch (error) {
@@ -174,16 +174,16 @@ exports.put_services = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         // req.query is already available via Express;
         const id = req.query['id'];
         if (!id || id === 'undefined') return res.status(400).json({ success: false, error: 'Invalid service ID provided' });
         if (!id) {
-            return res.json({ success: false, error: 'Service provider ID required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Service provider ID required' });
         }
         const body = req.body;
         // Ensure location has proper GeoJSON format - USA based
@@ -240,7 +240,7 @@ exports.put_services = async (req, res, next) => {
             }
         });
         if (!serviceProvider) {
-            return res.json({ success: false, error: 'Service provider not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Service provider not found' });
         }
         return res.json({
             success: true,
@@ -250,7 +250,7 @@ exports.put_services = async (req, res, next) => {
     }
     catch (error) {
         console.error('Update service provider error:', error);
-        return res.json({ success: false, error: error.message || 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
     }
 
   } catch (error) {
@@ -265,20 +265,20 @@ exports.delete_services = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         // req.query is already available via Express;
         const id = req.query['id'];
         if (!id || id === 'undefined') return res.status(400).json({ success: false, error: 'Invalid service ID provided' });
         if (!id) {
-            return res.json({ success: false, error: 'Service provider ID required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Service provider ID required' });
         }
         const serviceProvider = await prisma.adminServiceProvider.findUnique({ where: { id: id } });
         if (!serviceProvider) {
-            return res.json({ success: false, error: 'Service provider not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Service provider not found' });
         }
         // Delete service provider profile
         await prisma.adminServiceProvider.delete({ where: { id: id } });
@@ -291,7 +291,7 @@ exports.delete_services = async (req, res, next) => {
     }
     catch (error) {
         console.error('Delete service provider error:', error);
-        return res.json({ success: false, error: error.message || 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
     }
 
   } catch (error) {
@@ -325,10 +325,10 @@ exports.get_category_documents = async (req, res, next) => {
                         },
                     });
                 }
-                return res.json({
+                return res.status(404).json({
                     success: false,
                     error: 'Category not found',
-                }, { status: 404 });
+                });
             }
             return res.json({
                 success: true,
@@ -358,10 +358,10 @@ exports.get_category_documents = async (req, res, next) => {
     }
     catch (error) {
         console.error('Error fetching category document requirements:', error);
-        return res.json({
+        return res.status(500).json({
             success: false,
             error: 'Failed to fetch category document requirements',
-        }, { status: 500 });
+        });
     }
 
   } catch (error) {
@@ -377,33 +377,33 @@ exports.post_category_documents = async (req, res, next) => {
         // Verify authentication
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Forbidden' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Forbidden' });
         }
         const body = req.body;
         const { category, categoryLabel, documents } = body;
         if (!category) {
-            return res.json({
+            return res.status(400).json({
                 success: false,
                 error: 'Category is required',
-            }, { status: 400 });
+            });
         }
         // Validate documents array
         if (!Array.isArray(documents)) {
-            return res.json({
+            return res.status(400).json({
                 success: false,
                 error: 'Documents must be an array',
-            }, { status: 400 });
+            });
         }
         // Validate each document entry
         for (const doc of documents) {
             if (!doc.type || !doc.label) {
-                return res.json({
+                return res.status(400).json({
                     success: false,
                     error: 'Each document must have a type and label',
-                }, { status: 400 });
+                });
             }
         }
         // Upsert the category document requirements
@@ -420,10 +420,10 @@ exports.post_category_documents = async (req, res, next) => {
     }
     catch (error) {
         console.error('Error saving category document requirements:', error);
-        return res.json({
+        return res.status(500).json({
             success: false,
             error: 'Failed to save category document requirements',
-        }, { status: 500 });
+        });
     }
 
   } catch (error) {
@@ -439,18 +439,18 @@ exports.put_category_documents = async (req, res, next) => {
         // Verify authentication
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Forbidden' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Forbidden' });
         }
         const body = req.body;
         const { category, document: newDoc } = body;
         if (!category || !newDoc || !newDoc.type || !newDoc.label) {
-            return res.json({
+            return res.status(400).json({
                 success: false,
                 error: 'Category, document type, and label are required',
-            }, { status: 400 });
+            });
         }
         // Check if category exists in DB
         let requirement = await prisma.adminCategoryDocReq.findFirst({ where: { category: category.toLowerCase() } });
@@ -467,10 +467,10 @@ exports.put_category_documents = async (req, res, next) => {
         // Check if document type already exists
         const existingDoc = requirement.documents.find(d => d.type === newDoc.type);
         if (existingDoc) {
-            return res.json({
+            return res.status(400).json({
                 success: false,
                 error: 'Document type already exists in this category',
-            }, { status: 400 });
+            });
         }
         // Add the new document type
         requirement.documents.push({
@@ -495,10 +495,10 @@ exports.put_category_documents = async (req, res, next) => {
     }
     catch (error) {
         console.error('Error adding document type:', error);
-        return res.json({
+        return res.status(500).json({
             success: false,
             error: 'Failed to add document type',
-        }, { status: 500 });
+        });
     }
 
   } catch (error) {
@@ -514,19 +514,19 @@ exports.delete_category_documents = async (req, res, next) => {
         // Verify authentication
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Forbidden' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Forbidden' });
         }
         // req.query is already available via Express;
         const category = req.query['category'];
         const documentType = req.query['documentType'];
         if (!category || !documentType) {
-            return res.json({
+            return res.status(400).json({
                 success: false,
                 error: 'Category and documentType are required',
-            }, { status: 400 });
+            });
         }
         // Find or create the category document requirements
         let requirement = await prisma.adminCategoryDocReq.findFirst({ where: { category: category.toLowerCase() } });
@@ -543,10 +543,10 @@ exports.delete_category_documents = async (req, res, next) => {
         // Remove the document type
         const docIndex = requirement.documents.findIndex(d => d.type === documentType);
         if (docIndex === -1) {
-            return res.json({
+            return res.status(404).json({
                 success: false,
                 error: 'Document type not found in this category',
-            }, { status: 404 });
+            });
         }
         requirement.documents.splice(docIndex, 1);
         const updatedRequirement = await prisma.adminCategoryDocReq.update({
@@ -561,10 +561,10 @@ exports.delete_category_documents = async (req, res, next) => {
     }
     catch (error) {
         console.error('Error removing document type:', error);
-        return res.json({
+        return res.status(500).json({
             success: false,
             error: 'Failed to remove document type',
-        }, { status: 500 });
+        });
     }
 
   } catch (error) {

@@ -11,10 +11,10 @@ exports.get_volunteer_teams = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         // req.query is already available via Express;
         const page = parseInt(req.query['page'] || '1');
@@ -63,7 +63,7 @@ exports.get_volunteer_teams = async (req, res, next) => {
     }
     catch (error) {
         console.error('Get teams error:', error);
-        return res.json({ success: false, error: 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (error) {
@@ -78,22 +78,22 @@ exports.post_volunteer_teams = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         const body = req.body;
         // Validate lead exists
         const lead = await prisma.volunteer.findUnique({ where: { id: body.leadId } });
         if (!lead) {
-            return res.json({ success: false, error: 'Team lead not found' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Team lead not found' });
         }
         // Validate members exist
         if (body.memberIds && body.memberIds.length > 0) {
             const members = await prisma.volunteer.findMany({ where: { id: { in: body.memberIds } } });
             if (members.length !== body.memberIds.length) {
-                return res.json({ success: false, error: 'One or more members not found' }, { status: 400 });
+                return res.status(400).json({ success: false, error: 'One or more members not found' });
             }
         }
         // Ensure lead is in memberIds
@@ -130,7 +130,7 @@ exports.post_volunteer_teams = async (req, res, next) => {
     }
     catch (error) {
         console.error('Create team error:', error);
-        return res.json({ success: false, error: 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (error) {
@@ -145,34 +145,34 @@ exports.put_volunteer_teams = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         // req.query is already available via Express;
         const id = req.query['id'];
         if (!id || id === 'undefined') return res.status(400).json({ success: false, error: 'Invalid team ID provided' });
         if (!id) {
-            return res.json({ success: false, error: 'Team ID required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Team ID required' });
         }
         const body = req.body;
         const team = await prisma.adminVolunteerTeam.findUnique({ where: { id: id } });
         if (!team) {
-            return res.json({ success: false, error: 'Team not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Team not found' });
         }
         // If lead is changing, validate new lead exists
         if (body.leadId && body.leadId !== team.leadId) {
             const newLead = await prisma.volunteer.findUnique({ where: { id: body.leadId } });
             if (!newLead) {
-                return res.json({ success: false, error: 'New team lead not found' }, { status: 400 });
+                return res.status(400).json({ success: false, error: 'New team lead not found' });
             }
         }
         // If members are changing, validate they exist
         if (body.memberIds && body.memberIds.length > 0) {
             const members = await prisma.volunteer.findMany({ where: { id: { in: body.memberIds } } });
             if (members.length !== body.memberIds.length) {
-                return res.json({ success: false, error: 'One or more members not found' }, { status: 400 });
+                return res.status(400).json({ success: false, error: 'One or more members not found' });
             }
         }
         // Ensure lead is in memberIds
@@ -221,7 +221,7 @@ exports.put_volunteer_teams = async (req, res, next) => {
     }
     catch (error) {
         console.error('Update team error:', error);
-        return res.json({ success: false, error: 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (error) {
@@ -236,20 +236,20 @@ exports.delete_volunteer_teams = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         // req.query is already available via Express;
         const id = req.query['id'];
         if (!id || id === 'undefined') return res.status(400).json({ success: false, error: 'Invalid team ID provided' });
         if (!id) {
-            return res.json({ success: false, error: 'Team ID required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Team ID required' });
         }
         const team = await prisma.adminVolunteerTeam.findUnique({ where: { id: id } });
         if (!team) {
-            return res.json({ success: false, error: 'Team not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Team not found' });
         }
         // Remove teamId from all members
         if (team.memberIds && team.memberIds.length > 0) {
@@ -264,7 +264,7 @@ exports.delete_volunteer_teams = async (req, res, next) => {
     }
     catch (error) {
         console.error('Delete team error:', error);
-        return res.json({ success: false, error: error.message || 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
     }
 
   } catch (error) {

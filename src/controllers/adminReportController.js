@@ -11,10 +11,10 @@ exports.get_reports = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         // req.query is already available via Express;
         const reportType = req.query['type'] || 'summary';
@@ -154,7 +154,7 @@ exports.get_reports = async (req, res, next) => {
     }
     catch (error) {
         console.error('Get reports error:', error);
-        return res.json({ success: false, error: error.message || 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
     }
 
   } catch (error) {
@@ -169,10 +169,10 @@ exports.post_reports = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         const body = req.body;
         const { type, format, dateRange } = body;
@@ -196,7 +196,7 @@ exports.post_reports = async (req, res, next) => {
     }
     catch (error) {
         console.error('Generate report error:', error);
-        return res.json({ success: false, error: error.message || 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
     }
 
   } catch (error) {

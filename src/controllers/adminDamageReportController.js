@@ -11,13 +11,11 @@ exports.get_damage_reports = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, message: 'Not authorized. No token provided.' }, { status: 401 });
-            return addCorsHeaders(response, request);
+            return res.status(401).json({ success: false, message: 'Not authorized. No token provided.' });
         }
         // Check permission
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
-            return addCorsHeaders(response, request);
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         // Get query parameters
         // req.query is already available via Express;
@@ -54,13 +52,13 @@ exports.get_damage_reports = async (req, res, next) => {
             query.severity = severity;
         }
         if (customerId) {
-            query['customer.customerId'] = customerId;
+            query.customer = { path: ['customerId'], equals: customerId };
         }
         if (city) {
-            query['propertyAddress.city'] = { $regex: city, $options: 'i' };
+            query.propertyAddress = { path: ['city'], string_contains: city };
         }
         if (state) {
-            query['propertyAddress.state'] = { $regex: state, $options: 'i' };
+            query.propertyAddress = { path: ['state'], string_contains: state };
         }
         // Calculate skip
         const skip = (page - 1) * limit;
@@ -123,16 +121,15 @@ exports.get_damage_reports = async (req, res, next) => {
                 },
             },
         });
-        return addCorsHeaders(response, request);
+
     }
     catch (error) {
         console.error('Get damage reports error:', error);
-        return res.json({
+        return res.status(500).json({
             success: false,
             error: error.message || 'Internal server error',
             details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-        }, { status: 500 });
-        return addCorsHeaders(response, request);
+        });
     }
 
   } catch (error) {
@@ -147,46 +144,39 @@ exports.post_damage_reports = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, message: 'Not authorized. No token provided.' }, { status: 401 });
-            return addCorsHeaders(response, request);
+            return res.status(401).json({ success: false, message: 'Not authorized. No token provided.' });
         }
         // Allow admin and super_admin to create damage reports
         if (tokenPayload.role !== 'SUPER_ADMIN' && tokenPayload.role !== 'ADMIN') {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
-            return addCorsHeaders(response, request);
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         const body = req.body;
         // Validate required fields - now requires customer selection
         if (!body.customer?.customerId) {
-            return res.json({ success: false, error: 'Customer selection is required' }, { status: 400 });
-            return addCorsHeaders(response, request);
+            return res.status(400).json({ success: false, error: 'Customer selection is required' });
         }
         if (!body.propertyAddress || !body.damageType || !body.severity || !body.description) {
-            return res.json({ success: false, error: 'Property address, damage type, severity, and description are required' }, { status: 400 });
-            return addCorsHeaders(response, request);
+            return res.status(400).json({ success: false, error: 'Property address, damage type, severity, and description are required' });
         }
         // Validate insuranceCoverage if provided
         const validInsuranceCoverage = ['uninsured', 'partially_insured', 'fully_insured'];
         if (body.insuranceCoverage != null && body.insuranceCoverage !== '') {
             if (!validInsuranceCoverage.includes(body.insuranceCoverage)) {
-                return res.json({ success: false, error: 'insuranceCoverage must be one of: uninsured, partially_insured, fully_insured' }, { status: 400 });
-                return addCorsHeaders(response, request);
+                return res.status(400).json({ success: false, error: 'insuranceCoverage must be one of: uninsured, partially_insured, fully_insured' });
             }
         }
         const estimatedCost = Number(body.estimatedCost) || 0;
         const fundingSources = Array.isArray(body.fundingSources) ? body.fundingSources : [];
         const totalFunding = fundingSources.reduce((sum, s) => sum + (Number(s?.amount) || 0), 0);
         if (estimatedCost > 0 && totalFunding > estimatedCost) {
-            return res.json({ success: false, error: 'Sum of funding sources cannot exceed the estimated repair cost.' }, { status: 400 });
-            return addCorsHeaders(response, request);
+            return res.status(400).json({ success: false, error: 'Sum of funding sources cannot exceed the estimated repair cost.' });
         }
         // Fetch customer details from User model if only customerId provided
         let customerData = body.customer;
         if (body.customer.customerId && (!body.customer.firstName || !body.customer.lastName)) {
             const user = await prisma.adminUser.findUnique({ where: { id: body.customer.customerId } });
             if (!user) {
-                return res.json({ success: false, error: 'Customer not found' }, { status: 404 });
-                return addCorsHeaders(response, request);
+                return res.status(404).json({ success: false, error: 'Customer not found' });
             }
             customerData = {
                 customerId: user.id.toString(),
@@ -206,16 +196,17 @@ exports.post_damage_reports = async (req, res, next) => {
         if (body.reportNumber) {
             const existingReport = await prisma.adminDamageReport.findFirst({ where: { reportNumber: body.reportNumber.toUpperCase() } });
             if (existingReport) {
-                return res.json({ success: false, error: 'Damage report with this report number already exists' }, { status: 400 });
-                return addCorsHeaders(response, request);
+                return res.status(400).json({ success: false, error: 'Damage report with this report number already exists' });
             }
         }
         // Generate reportNumber before creating document (validation runs before pre-save hook)
         let reportNumber = body.reportNumber?.trim()?.toUpperCase();
         if (!reportNumber) {
             const year = new Date().getFullYear();
-            const count = await DamageReport.countDocuments({
-                reportDate: { gte: new Date(year, 0, 1), $lt: new Date(year + 1, 0, 1) },
+            const count = await prisma.adminDamageReport.count({
+                where: {
+                    reportDate: { gte: new Date(year, 0, 1), lt: new Date(year + 1, 0, 1) },
+                },
             });
             reportNumber = `DR-${year}-${String(count + 1).padStart(3, '0')}`;
         }
@@ -265,16 +256,15 @@ exports.post_damage_reports = async (req, res, next) => {
             },
             message: 'Damage report created successfully',
         });
-        return addCorsHeaders(response, request);
+
     }
     catch (error) {
         console.error('Create damage report error:', error);
-        return res.json({
+        return res.status(500).json({
             success: false,
             error: error.message || 'Internal server error',
             details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-        }, { status: 500 });
-        return addCorsHeaders(response, request);
+        });
     }
 
   } catch (error) {
@@ -291,18 +281,15 @@ exports.get_damage_reports__id = async (req, res, next) => {
         const tokenPayload = await req.user;
         const { id } = req.params;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-            return addCorsHeaders(response, request);
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         // Check permission
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
-            return addCorsHeaders(response, request);
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         const damageReport = await prisma.adminDamageReport.findUnique({ where: { id: id } });
         if (!damageReport) {
-            return res.json({ success: false, error: 'Damage report not found' }, { status: 404 });
-            return addCorsHeaders(response, request);
+            return res.status(404).json({ success: false, error: 'Damage report not found' });
         }
         let fundingSources = damageReport.fundingSources || [];
         if (typeof damageReport.fundingSources === 'string') {
@@ -330,7 +317,6 @@ exports.get_damage_reports__id = async (req, res, next) => {
                 },
             },
         });
-        return addCorsHeaders(response, request);
     }
     catch (error) {
         console.error('Get damage report error:', error);
@@ -339,7 +325,6 @@ exports.get_damage_reports__id = async (req, res, next) => {
             error: error.message || 'Internal server error',
             details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
         }, { status: 500 });
-        return addCorsHeaders(response, request);
     }
 
   } catch (error) {
@@ -355,27 +340,23 @@ exports.put_damage_reports__id = async (req, res, next) => {
         const tokenPayload = await req.user;
         const { id } = req.params;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-            return addCorsHeaders(response, request);
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         // Check permission
         if (tokenPayload.role !== 'SUPER_ADMIN' && tokenPayload.role !== 'ADMIN') {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
-            return addCorsHeaders(response, request);
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         // Get existing report
         const existingReport = await prisma.adminDamageReport.findUnique({ where: { id: id } });
         if (!existingReport) {
-            return res.json({ success: false, error: 'Damage report not found' }, { status: 404 });
-            return addCorsHeaders(response, request);
+            return res.status(404).json({ success: false, error: 'Damage report not found' });
         }
         const body = req.body;
         // Validate insuranceCoverage if provided
         const validInsuranceCoverage = ['uninsured', 'partially_insured', 'fully_insured'];
         if (body.insuranceCoverage != null && body.insuranceCoverage !== '') {
             if (!validInsuranceCoverage.includes(body.insuranceCoverage)) {
-                return res.json({ success: false, error: 'insuranceCoverage must be one of: uninsured, partially_insured, fully_insured' }, { status: 400 });
-                return addCorsHeaders(response, request);
+                return res.status(400).json({ success: false, error: 'insuranceCoverage must be one of: uninsured, partially_insured, fully_insured' });
             }
         }
         else if (body.insuranceCoverage === '') {
@@ -387,8 +368,7 @@ exports.put_damage_reports__id = async (req, res, next) => {
                     reportNumber: body.reportNumber.toUpperCase(), id: { not: id }
                 } });
             if (duplicateReport) {
-                return res.json({ success: false, error: 'Damage report with this report number already exists' }, { status: 400 });
-                return addCorsHeaders(response, request);
+                return res.status(400).json({ success: false, error: 'Damage report with this report number already exists' });
             }
             body.reportNumber = body.reportNumber.toUpperCase();
         }
@@ -632,8 +612,7 @@ exports.put_damage_reports__id = async (req, res, next) => {
     // findByIdAndUpdate with plain objects can drop nested subdocument fields in arrays.
     const doc = await prisma.adminDamageReport.findUnique({ where: { id: id } });
     if (!doc) {
-        return res.json({ success: false, error: 'Damage report not found' }, { status: 404 });
-        return addCorsHeaders(response, request);
+        return res.status(404).json({ success: false, error: 'Damage report not found' });
     }
     const { 
         id: _omitId, 
@@ -679,7 +658,6 @@ exports.put_damage_reports__id = async (req, res, next) => {
         },
         message: 'Damage report updated successfully',
     });
-    return addCorsHeaders(response, request);
   } catch (innerError) {
     console.error('Update damage report processing error:', innerError);
     return res.status(500).json({ success: false, error: 'Internal server error' });
@@ -697,18 +675,15 @@ exports.delete_damage_reports__id = async (req, res, next) => {
         const tokenPayload = await req.user;
         const { id } = req.params;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-            return addCorsHeaders(response, request);
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         // Only super_admin can delete damage reports
         if (tokenPayload.role !== 'SUPER_ADMIN') {
-            return res.json({ success: false, error: 'Permission denied. Only super admin can delete damage reports.' }, { status: 403 });
-            return addCorsHeaders(response, request);
+            return res.status(403).json({ success: false, error: 'Permission denied. Only super admin can delete damage reports.' });
         }
         const damageReport = await prisma.adminDamageReport.delete({ where: { id: id } });
         if (!damageReport) {
-            return res.json({ success: false, error: 'Damage report not found' }, { status: 404 });
-            return addCorsHeaders(response, request);
+            return res.status(404).json({ success: false, error: 'Damage report not found' });
         }
         // Update adjuster's assignedReports if there was one
         if (damageReport.assignedAdjuster) {
@@ -726,7 +701,6 @@ exports.delete_damage_reports__id = async (req, res, next) => {
             success: true,
             message: 'Damage report deleted successfully',
         });
-        return addCorsHeaders(response, request);
     }
     catch (error) {
         console.error('Delete damage report error:', error);
@@ -735,7 +709,6 @@ exports.delete_damage_reports__id = async (req, res, next) => {
             error: error.message || 'Internal server error',
             details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
         }, { status: 500 });
-        return addCorsHeaders(response, request);
     }
 
   } catch (error) {
@@ -751,12 +724,10 @@ exports.post_damage_reports_seed = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, message: 'Not authorized. No token provided.' }, { status: 401 });
-            return addCorsHeaders(response, request);
+            return res.status(401).json({ success: false, message: 'Not authorized. No token provided.' });
         }
         if (tokenPayload.role !== 'SUPER_ADMIN') {
-            return res.json({ success: false, error: 'Permission denied. Only super admin can seed data.' }, { status: 403 });
-            return addCorsHeaders(response, request);
+            return res.status(403).json({ success: false, error: 'Permission denied. Only super admin can seed data.' });
         }
         // 1) Fetch users (customers) from external API only – no fake data
         const externalRes = await fetch(EXTERNAL_CUSTOMERS_API_URL, {
@@ -764,14 +735,12 @@ exports.post_damage_reports_seed = async (req, res, next) => {
             cache: 'no-store',
         });
         if (!externalRes.ok) {
-            return res.json({ success: false, error: 'Failed to fetch customers from external API. Check EXTERNAL_CUSTOMERS_API_URL.' }, { status: 502 });
-            return addCorsHeaders(response, request);
+            return res.status(502).json({ success: false, error: 'Failed to fetch customers from external API. Check EXTERNAL_CUSTOMERS_API_URL.' });
         }
         const externalData = await externalRes.json();
         const externalUsers = externalData?.data?.users ?? externalData?.users ?? [];
         if (!Array.isArray(externalUsers) || externalUsers.length === 0) {
-            return res.json({ success: false, error: 'No users returned from external API. Cannot seed damage reports.' }, { status: 400 });
-            return addCorsHeaders(response, request);
+            return res.status(400).json({ success: false, error: 'No users returned from external API. Cannot seed damage reports.' });
         }
         const customers = externalUsers.map((u) => mapExternalUserToCustomer(u));
         // 2) Fetch existing adjusters and service providers (vendors) from our DB
@@ -942,7 +911,6 @@ exports.post_damage_reports_seed = async (req, res, next) => {
                 })),
             },
         });
-        return addCorsHeaders(response, request);
     }
     catch (error) {
         console.error('Seed damage reports error:', error);
@@ -951,7 +919,6 @@ exports.post_damage_reports_seed = async (req, res, next) => {
             error: error.message || 'Internal server error',
             details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
         }, { status: 500 });
-        return addCorsHeaders(response, request);
     }
 
   } catch (error) {
@@ -966,12 +933,10 @@ exports.delete_damage_reports_seed = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, message: 'Not authorized. No token provided.' }, { status: 401 });
-            return addCorsHeaders(response, request);
+            return res.status(401).json({ success: false, message: 'Not authorized. No token provided.' });
         }
         if (tokenPayload.role !== 'SUPER_ADMIN') {
-            return res.json({ success: false, error: 'Permission denied. Only super admin can clear data.' }, { status: 403 });
-            return addCorsHeaders(response, request);
+            return res.status(403).json({ success: false, error: 'Permission denied. Only super admin can clear data.' });
         }
         const result = await prisma.adminDamageReport.deleteMany({ where: {} });
         return res.json({
@@ -979,12 +944,10 @@ exports.delete_damage_reports_seed = async (req, res, next) => {
             message: `Successfully deleted ${result.deletedCount} damage reports`,
             data: { deletedCount: result.deletedCount },
         });
-        return addCorsHeaders(response, request);
     }
     catch (error) {
         console.error('Clear damage reports error:', error);
-        return res.json({ success: false, error: error.message || 'Internal server error' }, { status: 500 });
-        return addCorsHeaders(response, request);
+        return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
     }
 
   } catch (error) {

@@ -11,7 +11,7 @@ exports.get_emergencies = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         // req.query is already available via Express;
         const page = parseInt(req.query['page'] || '1');
@@ -55,7 +55,7 @@ exports.get_emergencies = async (req, res, next) => {
     }
     catch (error) {
         console.error('Get emergencies error:', error);
-        return res.json({ success: false, error: 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (error) {
@@ -70,10 +70,10 @@ exports.post_emergencies = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         const body = req.body;
         const { title, description, type, priority, disasterId, location, requestedBy, numberOfPeople, specialRequirements, } = body;
@@ -106,7 +106,7 @@ exports.post_emergencies = async (req, res, next) => {
     }
     catch (error) {
         console.error('Create emergency error:', error);
-        return res.json({ success: false, error: 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (error) {

@@ -81,7 +81,7 @@ exports.get_mobile_alerts = async (req, res, next) => {
     }
     catch (error) {
         console.error('Mobile alerts error:', error);
-        return res.json({ success: false, error: 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (error) {
@@ -97,11 +97,11 @@ exports.get_mobile_tasks = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload || tokenPayload.role !== 'volunteer') {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         const volunteer = await prisma.volunteer.findFirst({ where: { userId: tokenPayload.userId } });
         if (!volunteer) {
-            return res.json({ success: false, error: 'Volunteer not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Volunteer not found' });
         }
         const now = new Date();
         const assignments = volunteer.assignedDisasters || [];
@@ -152,7 +152,7 @@ exports.get_mobile_tasks = async (req, res, next) => {
     }
     catch (error) {
         console.error('Mobile tasks GET error:', error);
-        return res.json({ success: false, error: 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (error) {
@@ -168,23 +168,23 @@ exports.get_mobile_tasks__disasterId = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload || tokenPayload.role !== 'volunteer') {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         const { disasterId } = await context.params;
         if (!disasterId || !(typeof disasterId === "string" && disasterId.length > 0)) {
-            return res.json({ success: false, error: 'Valid disasterId is required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Valid disasterId is required' });
         }
         const volunteer = await prisma.volunteer.findFirst({ where: { userId: tokenPayload.userId } });
         if (!volunteer) {
-            return res.json({ success: false, error: 'Volunteer not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Volunteer not found' });
         }
         const assignment = volunteer.assignedDisasters?.find((a) => String(a.disasterId) === disasterId);
         if (!assignment) {
-            return res.json({ success: false, error: 'Task not found or not assigned to you' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Task not found or not assigned to you' });
         }
         const disaster = await prisma.adminDisaster.findUnique({ where: { id: disasterId } });
         if (!disaster) {
-            return res.json({ success: false, error: 'Task not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Task not found' });
         }
         const d = disaster;
         const severity = d.severity || 'high';
@@ -209,7 +209,7 @@ exports.get_mobile_tasks__disasterId = async (req, res, next) => {
     }
     catch (error) {
         console.error('Mobile task detail error:', error);
-        return res.json({ success: false, error: 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (error) {
@@ -225,21 +225,21 @@ exports.post_mobile_tasks_accept = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload || tokenPayload.role !== 'volunteer') {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         const body = req.body;
         const disasterId = body?.disasterId ? String(body.disasterId).trim() : '';
         if (!disasterId || !(typeof disasterId === "string" && disasterId.length > 0)) {
-            return res.json({ success: false, error: 'Valid disasterId is required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Valid disasterId is required' });
         }
         const volunteer = await prisma.volunteer.findFirst({ where: { userId: tokenPayload.userId } });
         if (!volunteer) {
-            return res.json({ success: false, error: 'Volunteer not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Volunteer not found' });
         }
         const assignments = volunteer.assignedDisasters || [];
         const assignment = assignments.find((a) => String(a.disasterId) === disasterId);
         if (!assignment) {
-            return res.json({ success: false, error: 'Task not found or not assigned to you' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Task not found or not assigned to you' });
         }
         if (assignment.status === 'active') {
             return res.json({
@@ -249,7 +249,7 @@ exports.post_mobile_tasks_accept = async (req, res, next) => {
             });
         }
         if (assignment.status === 'cancelled' || assignment.status === 'completed') {
-            return res.json({ success: false, error: 'Task cannot be accepted in current state' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Task cannot be accepted in current state' });
         }
         assignment.status = 'active';
         await prisma.volunteer.update({
@@ -264,7 +264,7 @@ exports.post_mobile_tasks_accept = async (req, res, next) => {
     }
     catch (error) {
         console.error('Mobile tasks accept error:', error);
-        return res.json({ success: false, error: 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (error) {
@@ -280,21 +280,21 @@ exports.post_mobile_tasks_decline = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload || tokenPayload.role !== 'volunteer') {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         const body = req.body;
         const disasterId = body?.disasterId ? String(body.disasterId).trim() : '';
         if (!disasterId || !(typeof disasterId === "string" && disasterId.length > 0)) {
-            return res.json({ success: false, error: 'Valid disasterId is required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Valid disasterId is required' });
         }
         const volunteer = await prisma.volunteer.findFirst({ where: { userId: tokenPayload.userId } });
         if (!volunteer) {
-            return res.json({ success: false, error: 'Volunteer not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Volunteer not found' });
         }
         const assignments = volunteer.assignedDisasters || [];
         const assignment = assignments.find((a) => String(a.disasterId) === disasterId);
         if (!assignment) {
-            return res.json({ success: false, error: 'Task not found or not assigned to you' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Task not found or not assigned to you' });
         }
         if (assignment.status === 'cancelled') {
             return res.json({
@@ -304,7 +304,7 @@ exports.post_mobile_tasks_decline = async (req, res, next) => {
             });
         }
         if (assignment.status === 'completed') {
-            return res.json({ success: false, error: 'Completed task cannot be declined' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Completed task cannot be declined' });
         }
         assignment.status = 'cancelled';
         await prisma.volunteer.update({
@@ -330,7 +330,7 @@ exports.post_mobile_tasks_decline = async (req, res, next) => {
     }
     catch (error) {
         console.error('Mobile tasks decline error:', error);
-        return res.json({ success: false, error: 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (error) {

@@ -131,7 +131,7 @@ exports.get_search = async (req, res, next) => {
     }
     catch (error) {
         console.error('Search error:', error);
-        return res.json({ success: false, error: 'Search failed' }, { status: 500 });
+        return res.status(500).json({ success: false, error: 'Search failed' });
     }
 
   } catch (error) {

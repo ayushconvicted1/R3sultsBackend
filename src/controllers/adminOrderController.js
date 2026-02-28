@@ -11,7 +11,7 @@ exports.get_orders = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         // req.query is already available via Express;
         const page = parseInt(req.query['page'] || '1', 10);
@@ -52,7 +52,7 @@ exports.get_orders = async (req, res, next) => {
     }
     catch (error) {
         console.error('Orders list error:', error);
-        return res.json({ success: false, error: error instanceof Error ? error.message : 'Failed to fetch orders' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Failed to fetch orders' });
     }
 
   } catch (error) {
@@ -68,13 +68,13 @@ exports.get_orders__id = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         const { id } = req.params;
         const isObjectId = /^[a-f\d]{24}$/i.test(id);
         const order = await prisma.adminOrder.findFirst({ where: isObjectId ? { id: id } : { id } });
         if (!order) {
-            return res.json({ success: false, error: 'Order not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Order not found' });
         }
         const lineItems = order.line_items || [];
         const enrichedLineItems = await Promise.all(lineItems.map(async (item) => {
@@ -104,7 +104,7 @@ exports.get_orders__id = async (req, res, next) => {
     }
     catch (error) {
         console.error('Get order error:', error);
-        return res.json({ success: false, error: error instanceof Error ? error.message : 'Failed to fetch order' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Failed to fetch order' });
     }
 
   } catch (error) {

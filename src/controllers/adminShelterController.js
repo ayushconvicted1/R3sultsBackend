@@ -11,7 +11,7 @@ exports.get_shelters = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         // req.query is already available via Express;
         const page = parseInt(req.query['page'] || '1');
@@ -87,7 +87,7 @@ exports.get_shelters = async (req, res, next) => {
     }
     catch (error) {
         console.error('Get shelters error:', error);
-        return res.json({ success: false, error: 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (error) {
@@ -102,10 +102,10 @@ exports.post_shelters = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         const body = req.body;
         // Log received data for debugging (only in development)
@@ -144,13 +144,13 @@ exports.post_shelters = async (req, res, next) => {
         const currentOccupancy = Number(body.currentOccupancy) || 0;
         const capacity = Number(body.capacity);
         if (currentOccupancy < 0) {
-            return res.json({ success: false, error: 'Current occupancy cannot be negative' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Current occupancy cannot be negative' });
         }
         // Validate email format if provided
         if (body.contactEmail && body.contactEmail.trim()) {
             const emailRegex = /^\S+@\S+\.\S+$/;
             if (!emailRegex.test(body.contactEmail)) {
-                return res.json({ success: false, error: 'Please enter a valid email address' }, { status: 400 });
+                return res.status(400).json({ success: false, error: 'Please enter a valid email address' });
             }
         }
         // Validate website URL format if provided
@@ -159,13 +159,13 @@ exports.post_shelters = async (req, res, next) => {
                 new URL(body.website.startsWith('http') ? body.website : `https://${body.website}`);
             }
             catch {
-                return res.json({ success: false, error: 'Please enter a valid website URL' }, { status: 400 });
+                return res.status(400).json({ success: false, error: 'Please enter a valid website URL' });
             }
         }
         // Validate zip code format (numbers only) if provided
         if (body.zipCode && body.zipCode.trim()) {
             if (!/^\d+$/.test(body.zipCode.trim())) {
-                return res.json({ success: false, error: 'Zip code must contain only numbers' }, { status: 400 });
+                return res.status(400).json({ success: false, error: 'Zip code must contain only numbers' });
             }
         }
         // Determine status based on occupancy
@@ -205,13 +205,13 @@ exports.post_shelters = async (req, res, next) => {
         // Create shelter using Prisma
         const shelter = await prisma.adminShelter.create({ data: shelterData });
         if (!shelter) {
-            return res.json({ success: false, error: 'Failed to create shelter' }, { status: 500 });
+            return res.status(500).json({ success: false, error: 'Failed to create shelter' });
         }
         // Helper function to handle null/undefined values
         const getValue = (val, defaultValue = '') => {
             return val !== null && val !== undefined ? val : defaultValue;
         };
-        return res.json({
+        return res.status(201).json({
             success: true,
             data: {
                 id: shelter.id.toString(),
@@ -240,17 +240,17 @@ exports.post_shelters = async (req, res, next) => {
                     : { lat: 0, lng: 0 },
                 createdAt: shelter.createdAt?.toISOString() || new Date().toISOString(),
             },
-        }, { status: 201 });
+        });
     }
     catch (error) {
         console.error('Create shelter error:', error);
         console.error('Error stack:', error.stack);
         console.error('Error details:', JSON.stringify(error, null, 2));
-        return res.json({
+        return res.status(500).json({
             success: false,
             error: error.message || 'Internal server error',
             details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-        }, { status: 500 });
+        });
     }
 
   } catch (error) {
@@ -265,14 +265,14 @@ exports.put_shelters = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         const body = req.body;
         if (!body.id) {
-            return res.json({ success: false, error: 'Shelter ID is required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Shelter ID is required' });
         }
         // Convert string ID to ObjectId for proper MongoDB query
         let shelterId;
@@ -280,17 +280,17 @@ exports.put_shelters = async (req, res, next) => {
             shelterId = body.id;
         }
         catch (error) {
-            return res.json({ success: false, error: 'Invalid shelter ID format' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Invalid shelter ID format' });
         }
         const shelter = await prisma.adminShelter.findUnique({ where: { id: shelterId } });
         if (!shelter) {
-            return res.json({ success: false, error: 'Shelter not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Shelter not found' });
         }
         // Validate zip code format (numbers only) - only if zipCode is provided and not empty
         if (body.zipCode !== undefined && body.zipCode !== null && String(body.zipCode).trim()) {
             const zipCodeStr = String(body.zipCode).trim();
             if (zipCodeStr && !/^\d+$/.test(zipCodeStr)) {
-                return res.json({ success: false, error: 'Zip code must contain only numbers' }, { status: 400 });
+                return res.status(400).json({ success: false, error: 'Zip code must contain only numbers' });
             }
         }
         // Update ALL fields from the request body
@@ -315,14 +315,14 @@ exports.put_shelters = async (req, res, next) => {
         if (body.capacity !== undefined) {
             const newCapacity = Number(body.capacity);
             if (newCapacity < 1) {
-                return res.json({ success: false, error: 'Capacity must be at least 1' }, { status: 400 });
+                return res.status(400).json({ success: false, error: 'Capacity must be at least 1' });
             }
             updateData.capacity = newCapacity;
         }
         if (body.currentOccupancy !== undefined) {
             const newOccupancy = Number(body.currentOccupancy) || 0;
             if (newOccupancy < 0) {
-                return res.json({ success: false, error: 'Occupancy cannot be negative' }, { status: 400 });
+                return res.status(400).json({ success: false, error: 'Occupancy cannot be negative' });
             }
             updateData.currentOccupancy = newOccupancy;
         }
@@ -354,7 +354,7 @@ exports.put_shelters = async (req, res, next) => {
             if (email) {
                 const emailRegex = /^\S+@\S+\.\S+$/;
                 if (!emailRegex.test(email)) {
-                    return res.json({ success: false, error: 'Please enter a valid email address' }, { status: 400 });
+                    return res.status(400).json({ success: false, error: 'Please enter a valid email address' });
                 }
                 updateData.contactEmail = email;
             }
@@ -373,7 +373,7 @@ exports.put_shelters = async (req, res, next) => {
                     updateData.website = website;
                 }
                 catch {
-                    return res.json({ success: false, error: 'Please enter a valid website URL' }, { status: 400 });
+                    return res.status(400).json({ success: false, error: 'Please enter a valid website URL' });
                 }
             }
             else {
@@ -399,7 +399,7 @@ exports.put_shelters = async (req, res, next) => {
         }
         // Ensure we have at least one field to update
         if (Object.keys(updateData).length === 0) {
-            return res.json({ success: false, error: 'No fields to update' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'No fields to update' });
         }
         // Log before update for debugging
         console.log('=== UPDATE OPERATION DEBUG ===');
@@ -427,7 +427,7 @@ exports.put_shelters = async (req, res, next) => {
         });
     } catch (innerError) {
         console.error('Update shelter error:', innerError);
-        return res.json({ success: false, error: 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
   } catch (error) {
@@ -442,16 +442,16 @@ exports.delete_shelters = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         // req.query is already available via Express;
         const id = req.query['id'];
         if (!id || id === 'undefined') return res.status(400).json({ success: false, error: 'Invalid shelter ID provided' });
         if (!id) {
-            return res.json({ success: false, error: 'Shelter ID is required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Shelter ID is required' });
         }
         // Convert string ID to ObjectId for proper MongoDB query
         let shelterId;
@@ -459,7 +459,7 @@ exports.delete_shelters = async (req, res, next) => {
             shelterId = id;
         }
         catch (error) {
-            return res.json({ success: false, error: 'Invalid shelter ID format' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Invalid shelter ID format' });
         }
         console.log('Deleting shelter:', id, 'ObjectId:', shelterId.toString());
         const deleteResult = await prisma.adminShelter.deleteMany({ where: { id: shelterId } });
@@ -468,7 +468,7 @@ exports.delete_shelters = async (req, res, next) => {
             acknowledged: deleteResult.acknowledged,
         });
         if (deleteResult.deletedCount === 0) {
-            return res.json({ success: false, error: 'Shelter not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Shelter not found' });
         }
         return res.json({
             success: true,
@@ -477,7 +477,7 @@ exports.delete_shelters = async (req, res, next) => {
     }
     catch (error) {
         console.error('Delete shelter error:', error);
-        return res.json({ success: false, error: error.message || 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
     }
 
   } catch (error) {
@@ -613,12 +613,12 @@ exports.post_shelters_seed = async (req, res, next) => {
     catch (error) {
         console.error('Seed shelters error:', error);
         console.error('Error stack:', error.stack);
-        return res.json({
+        return res.status(500).json({
             success: false,
             error: error.message || 'Internal server error',
             details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
             errorName: error.name
-        }, { status: 500 });
+        });
     }
 
   } catch (error) {
@@ -640,7 +640,7 @@ exports.delete_shelters_seed = async (req, res, next) => {
     }
     catch (error) {
         console.error('Clear shelters error:', error);
-        return res.json({ success: false, error: error.message || 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
     }
 
   } catch (error) {
@@ -785,10 +785,10 @@ exports.get_shelters_init = async (req, res, next) => {
     }
     catch (error) {
         console.error('Init shelters error:', error);
-        return res.json({
+        return res.status(500).json({
             success: false,
             error: error.message || 'Internal server error',
-        }, { status: 500 });
+        });
     }
 
   } catch (error) {
@@ -805,7 +805,7 @@ exports.get_shelters_auto_seed = async (req, res, next) => {
         // Check if shelters already exist
         const existingCount = await prisma.adminShelter.count();
         if (existingCount > 0) {
-            return res.json({
+            return res.status(201).json({
                 success: true,
                 message: `Database already has ${existingCount} shelters. No seeding needed.`,
                 count: existingCount,
@@ -897,15 +897,15 @@ exports.get_shelters_auto_seed = async (req, res, next) => {
                 city: shelter.city,
                 state: shelter.state,
             })),
-        }, { status: 201 });
+        });
     }
     catch (error) {
         console.error('Auto-seed shelters error:', error);
-        return res.json({
+        return res.status(500).json({
             success: false,
             error: error.message || 'Internal server error',
             details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-        }, { status: 500 });
+        });
     }
 
   } catch (error) {

@@ -323,7 +323,7 @@ exports.get_seed = async (req, res, next) => {
     }
     catch (error) {
         console.error('Seed error:', error);
-        return res.json({ success: false, error: 'Failed to seed database' }, { status: 500 });
+        return res.status(500).json({ success: false, error: 'Failed to seed database' });
     }
 
   } catch (error) {

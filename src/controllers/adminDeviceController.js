@@ -11,10 +11,10 @@ exports.get_devices = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         // req.query is already available via Express;
         const page = parseInt(req.query['page'] || '1');
@@ -70,7 +70,7 @@ exports.get_devices = async (req, res, next) => {
     }
     catch (error) {
         console.error('Get devices error:', error);
-        return res.json({ success: false, error: error.message || 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
     }
 
   } catch (error) {
@@ -85,10 +85,10 @@ exports.post_devices = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         const body = req.body;
         // Validate required fields
@@ -120,7 +120,7 @@ exports.post_devices = async (req, res, next) => {
         // Check if deviceId already exists
         const existingDevice = await prisma.adminDevice.findFirst({ where: { deviceId: body.deviceId.toUpperCase().trim() } });
         if (existingDevice) {
-            return res.json({ success: false, error: 'Device ID already exists' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Device ID already exists' });
         }
         const deviceData = {
             deviceId: String(body.deviceId).trim().toUpperCase(),
@@ -165,7 +165,7 @@ exports.post_devices = async (req, res, next) => {
         if (Array.isArray(device)) {
             device = device[0];
         }
-        return res.json({
+        return res.status(201).json({
             success: true,
             data: {
                 id: device.id?.toString(),
@@ -185,15 +185,15 @@ exports.post_devices = async (req, res, next) => {
                 familyMembers: device.familyMembers,
                 createdAt: device.createdAt?.toISOString() || new Date().toISOString(),
             },
-        }, { status: 201 });
+        });
     }
     catch (error) {
         console.error('Create device error:', error);
-        return res.json({
+        return res.status(500).json({
             success: false,
             error: error.message || 'Internal server error',
             details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-        }, { status: 500 });
+        });
     }
 
   } catch (error) {
@@ -208,25 +208,25 @@ exports.put_devices = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         const body = req.body;
         if (!body.id) {
-            return res.json({ success: false, error: 'Device ID is required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Device ID is required' });
         }
         let deviceId;
         try {
             deviceId = body.id;
         }
         catch (error) {
-            return res.json({ success: false, error: 'Invalid device ID format' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Invalid device ID format' });
         }
         const device = await prisma.adminDevice.findUnique({ where: { id: deviceId } });
         if (!device) {
-            return res.json({ success: false, error: 'Device not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Device not found' });
         }
         const updateData = {};
         if (body.deviceName !== undefined)
@@ -280,7 +280,7 @@ exports.put_devices = async (req, res, next) => {
             })) : [];
         }
         if (Object.keys(updateData).length === 0) {
-            return res.json({ success: false, error: 'No fields to update' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'No fields to update' });
         }
         // Use Prisma for update
         const updateResult = await prisma.adminDevice.update({
@@ -291,11 +291,11 @@ exports.put_devices = async (req, res, next) => {
             }
         });
     if (!updateResult) {
-        return res.json({ success: false, error: 'Device not found' }, { status: 404 });
+        return res.status(404).json({ success: false, error: 'Device not found' });
     }
     const updatedDevice = await prisma.adminDevice.findUnique({ where: { id: deviceId } });
     if (!updatedDevice) {
-        return res.json({ success: false, error: 'Device not found' }, { status: 404 });
+        return res.status(404).json({ success: false, error: 'Device not found' });
     }
     return res.json({
         success: true,
@@ -321,7 +321,7 @@ exports.put_devices = async (req, res, next) => {
     }
     catch (error) {
         console.error('Update device error:', error);
-        return res.json({ success: false, error: error.message || 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
     }
 
   } catch (error) {
@@ -336,27 +336,27 @@ exports.delete_devices = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         // req.query is already available via Express;
         const id = req.query['id'];
         if (!id || id === 'undefined') return res.status(400).json({ success: false, error: 'Invalid device ID provided' });
         if (!id) {
-            return res.json({ success: false, error: 'Device ID is required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Device ID is required' });
         }
         let deviceId;
         try {
             deviceId = id;
         }
         catch (error) {
-            return res.json({ success: false, error: 'Invalid device ID format' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Invalid device ID format' });
         }
         const deleteResult = await prisma.adminDevice.deleteMany({ where: { id: deviceId } });
         if (deleteResult.deletedCount === 0) {
-            return res.json({ success: false, error: 'Device not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Device not found' });
         }
         return res.json({
             success: true,
@@ -365,7 +365,7 @@ exports.delete_devices = async (req, res, next) => {
     }
     catch (error) {
         console.error('Delete device error:', error);
-        return res.json({ success: false, error: error.message || 'Internal server error' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
     }
 
   } catch (error) {
@@ -612,11 +612,11 @@ exports.post_devices_seed = async (req, res, next) => {
     }
     catch (error) {
         console.error('Seed devices error:', error);
-        return res.json({
+        return res.status(500).json({
             success: false,
             error: error.message || 'Internal server error',
             details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-        }, { status: 500 });
+        });
     }
 
   } catch (error) {

@@ -11,7 +11,7 @@ exports.get_inventory_items = async (req, res, next) => {
     try {
         const user = await req.user;
         if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         // req.query is already available via Express;
         const search = req.query['search'];
@@ -35,7 +35,7 @@ exports.get_inventory_items = async (req, res, next) => {
     }
     catch (error) {
         console.error('Error fetching inventory items:', error);
-        return res.json({ success: false, error: error.message || 'Failed to fetch items' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Failed to fetch items' });
     }
 
   } catch (error) {
@@ -50,12 +50,12 @@ exports.post_inventory_items = async (req, res, next) => {
     try {
         const user = await req.user;
         if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         const body = req.body;
         const { name, description, category, unit, sku, barcode, image, isActive } = body;
         if (!name || !category || !unit) {
-            return res.json({ success: false, error: 'Name, category, and unit are required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Name, category, and unit are required' });
         }
         const item = await prisma.adminprisma.adminInventoryItem.create({ data: { data: {
                     name,
@@ -75,9 +75,9 @@ exports.post_inventory_items = async (req, res, next) => {
     catch (error) {
         console.error('Error creating inventory item:', error);
         if (error.code === 11000) {
-            return res.json({ success: false, error: 'SKU or barcode already exists' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'SKU or barcode already exists' });
         }
-        return res.json({ success: false, error: error.message || 'Failed to create item' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Failed to create item' });
     }
 
   } catch (error) {
@@ -93,12 +93,12 @@ exports.get_inventory_items__id = async (req, res, next) => {
     try {
         const user = await req.user;
         if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         const { id } = req.params;
         const item = await prisma.adminInventoryItem.findUnique({ where: { id: id } });
         if (!item) {
-            return res.json({ success: false, error: 'Item not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Item not found' });
         }
         return res.json({
             success: true,
@@ -107,7 +107,7 @@ exports.get_inventory_items__id = async (req, res, next) => {
     }
     catch (error) {
         console.error('Error fetching inventory item:', error);
-        return res.json({ success: false, error: error.message || 'Failed to fetch item' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Failed to fetch item' });
     }
 
   } catch (error) {
@@ -122,7 +122,7 @@ exports.put_inventory_items__id = async (req, res, next) => {
     try {
         const user = await req.user;
         if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         const { id } = req.params;
         const body = req.body;
@@ -141,7 +141,7 @@ exports.put_inventory_items__id = async (req, res, next) => {
             },
         });
         if (!item) {
-            return res.json({ success: false, error: 'Item not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Item not found' });
         }
         return res.json({
             success: true,
@@ -151,9 +151,9 @@ exports.put_inventory_items__id = async (req, res, next) => {
     catch (error) {
         console.error('Error updating inventory item:', error);
         if (error.code === 11000) {
-            return res.json({ success: false, error: 'SKU or barcode already exists' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'SKU or barcode already exists' });
         }
-        return res.json({ success: false, error: error.message || 'Failed to update item' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Failed to update item' });
     }
 
   } catch (error) {
@@ -168,12 +168,12 @@ exports.delete_inventory_items__id = async (req, res, next) => {
     try {
         const user = await req.user;
         if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         const { id } = req.params;
         const item = await prisma.adminInventoryItem.delete({ where: { id: id } });
         if (!item) {
-            return res.json({ success: false, error: 'Item not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Item not found' });
         }
         return res.json({
             success: true,
@@ -182,7 +182,7 @@ exports.delete_inventory_items__id = async (req, res, next) => {
     }
     catch (error) {
         console.error('Error deleting inventory item:', error);
-        return res.json({ success: false, error: error.message || 'Failed to delete item' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Failed to delete item' });
     }
 
   } catch (error) {
@@ -198,7 +198,7 @@ exports.get_inventory_locations = async (req, res, next) => {
     try {
         const user = await req.user;
         if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         // req.query is already available via Express;
         const city = req.query['city'];
@@ -222,7 +222,7 @@ exports.get_inventory_locations = async (req, res, next) => {
     }
     catch (error) {
         console.error('Error fetching stock locations:', error);
-        return res.json({ success: false, error: error.message || 'Failed to fetch locations' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Failed to fetch locations' });
     }
 
   } catch (error) {
@@ -237,18 +237,18 @@ exports.post_inventory_locations = async (req, res, next) => {
     try {
         const user = await req.user;
         if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         const body = req.body;
         const { name, address, coordinates, contactPerson, capacity, isActive } = body;
         if (!name || !address || !coordinates) {
-            return res.json({ success: false, error: 'Name, address, and coordinates are required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Name, address, and coordinates are required' });
         }
         if (!address.street || !address.city || !address.state || !address.zipCode) {
-            return res.json({ success: false, error: 'Complete address is required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Complete address is required' });
         }
         if (!Array.isArray(coordinates.coordinates) || coordinates.coordinates.length !== 2) {
-            return res.json({ success: false, error: 'Valid coordinates [longitude, latitude] are required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Valid coordinates [longitude, latitude] are required' });
         }
         const location = await prisma.adminprisma.adminStockLocation.create({ data: { data: {
                     name,
@@ -275,7 +275,7 @@ exports.post_inventory_locations = async (req, res, next) => {
     }
     catch (error) {
         console.error('Error creating stock location:', error);
-        return res.json({ success: false, error: error.message || 'Failed to create location' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Failed to create location' });
     }
 
   } catch (error) {
@@ -291,12 +291,12 @@ exports.get_inventory_locations__id = async (req, res, next) => {
     try {
         const user = await req.user;
         if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         const { id } = req.params;
         const location = await prisma.adminStockLocation.findUnique({ where: { id: id } });
         if (!location) {
-            return res.json({ success: false, error: 'Location not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Location not found' });
         }
         return res.json({
             success: true,
@@ -305,7 +305,7 @@ exports.get_inventory_locations__id = async (req, res, next) => {
     }
     catch (error) {
         console.error('Error fetching stock location:', error);
-        return res.json({ success: false, error: error.message || 'Failed to fetch location' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Failed to fetch location' });
     }
 
   } catch (error) {
@@ -320,7 +320,7 @@ exports.put_inventory_locations__id = async (req, res, next) => {
     try {
         const user = await req.user;
         if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         const { id } = req.params;
         const body = req.body;
@@ -339,7 +339,7 @@ exports.put_inventory_locations__id = async (req, res, next) => {
             updateData.isActive = body.isActive;
         const location = await prisma.adminStockLocation.update({ where: { id: id }, data: updateData });
         if (!location) {
-            return res.json({ success: false, error: 'Location not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Location not found' });
         }
         return res.json({
             success: true,
@@ -348,7 +348,7 @@ exports.put_inventory_locations__id = async (req, res, next) => {
     }
     catch (error) {
         console.error('Error updating stock location:', error);
-        return res.json({ success: false, error: error.message || 'Failed to update location' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Failed to update location' });
     }
 
   } catch (error) {
@@ -363,12 +363,12 @@ exports.delete_inventory_locations__id = async (req, res, next) => {
     try {
         const user = await req.user;
         if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         const { id } = req.params;
         const location = await prisma.adminStockLocation.delete({ where: { id: id } });
         if (!location) {
-            return res.json({ success: false, error: 'Location not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Location not found' });
         }
         return res.json({
             success: true,
@@ -377,7 +377,7 @@ exports.delete_inventory_locations__id = async (req, res, next) => {
     }
     catch (error) {
         console.error('Error deleting stock location:', error);
-        return res.json({ success: false, error: error.message || 'Failed to delete location' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Failed to delete location' });
     }
 
   } catch (error) {
@@ -393,7 +393,7 @@ exports.get_inventory_stock = async (req, res, next) => {
     try {
         const user = await req.user;
         if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         // req.query is already available via Express;
         const sku = req.query['sku'];
@@ -420,7 +420,7 @@ exports.get_inventory_stock = async (req, res, next) => {
     }
     catch (error) {
         console.error('Error fetching stock entries:', error);
-        return res.json({ success: false, error: error.message || 'Failed to fetch stock entries' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Failed to fetch stock entries' });
     }
 
   } catch (error) {
@@ -435,21 +435,21 @@ exports.post_inventory_stock = async (req, res, next) => {
     try {
         const user = await req.user;
         if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         const body = req.body;
         const { item, location, inventory, batches, tags, } = body;
         if (!item || !location || !inventory) {
-            return res.json({ success: false, error: 'Item, location, and inventory are required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Item, location, and inventory are required' });
         }
         if (!item.name || !item.category || !item.sku) {
-            return res.json({ success: false, error: 'Item name, category, and SKU are required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Item name, category, and SKU are required' });
         }
         if (!location.warehouseId || !location.name || !location.address) {
-            return res.json({ success: false, error: 'Warehouse ID, name, and address are required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Warehouse ID, name, and address are required' });
         }
         if (inventory.currentQuantity === undefined || !inventory.unit || inventory.threshold === undefined) {
-            return res.json({ success: false, error: 'Current quantity, unit, and threshold are required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Current quantity, unit, and threshold are required' });
         }
         // Check if stock entry already exists for this SKU and warehouse
         const existing = await prisma.adminStockEntry.findFirst({ where: {
@@ -457,7 +457,7 @@ exports.post_inventory_stock = async (req, res, next) => {
                 'location.warehouseId': location.warehouseId,
             } });
         if (existing) {
-            return res.json({ success: false, error: 'Stock entry already exists for this SKU and warehouse' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Stock entry already exists for this SKU and warehouse' });
         }
         const stockEntry = await prisma.adminprisma.adminStockEntry.create({ data: { data: {
                     item: {
@@ -505,9 +505,9 @@ exports.post_inventory_stock = async (req, res, next) => {
     catch (error) {
         console.error('Error creating stock entry:', error);
         if (error.code === 11000) {
-            return res.json({ success: false, error: 'Stock entry already exists for this SKU and warehouse' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Stock entry already exists for this SKU and warehouse' });
         }
-        return res.json({ success: false, error: error.message || 'Failed to create stock entry' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Failed to create stock entry' });
     }
 
   } catch (error) {
@@ -523,12 +523,12 @@ exports.get_inventory_stock__id = async (req, res, next) => {
     try {
         const user = await req.user;
         if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         const { id } = req.params;
         const stockEntry = await prisma.adminStockEntry.findUnique({ where: { id: id } });
         if (!stockEntry) {
-            return res.json({ success: false, error: 'Stock entry not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Stock entry not found' });
         }
         return res.json({
             success: true,
@@ -537,7 +537,7 @@ exports.get_inventory_stock__id = async (req, res, next) => {
     }
     catch (error) {
         console.error('Error fetching stock entry:', error);
-        return res.json({ success: false, error: error.message || 'Failed to fetch stock entry' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Failed to fetch stock entry' });
     }
 
   } catch (error) {
@@ -552,13 +552,13 @@ exports.put_inventory_stock__id = async (req, res, next) => {
     try {
         const user = await req.user;
         if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         const { id } = req.params;
         const body = req.body;
         const stockEntry = await prisma.adminStockEntry.findUnique({ where: { id: id } });
         if (!stockEntry) {
-            return res.json({ success: false, error: 'Stock entry not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Stock entry not found' });
         }
         const oldQuantity = stockEntry.inventory.currentQuantity;
         const oldReserved = stockEntry.inventory.reservedQuantity;
@@ -656,7 +656,7 @@ exports.put_inventory_stock__id = async (req, res, next) => {
     }
     catch (error) {
         console.error('Error updating stock entry:', error);
-        return res.json({ success: false, error: error.message || 'Failed to update stock entry' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Failed to update stock entry' });
     }
 
   } catch (error) {
@@ -671,12 +671,12 @@ exports.delete_inventory_stock__id = async (req, res, next) => {
     try {
         const user = await req.user;
         if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         const { id } = req.params;
         const stockEntry = await prisma.adminStockEntry.delete({ where: { id: id } });
         if (!stockEntry) {
-            return res.json({ success: false, error: 'Stock entry not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Stock entry not found' });
         }
         return res.json({
             success: true,
@@ -685,7 +685,7 @@ exports.delete_inventory_stock__id = async (req, res, next) => {
     }
     catch (error) {
         console.error('Error deleting stock entry:', error);
-        return res.json({ success: false, error: error.message || 'Failed to delete stock entry' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Failed to delete stock entry' });
     }
 
   } catch (error) {
@@ -701,7 +701,7 @@ exports.post_inventory_stock__id_dispatch = async (req, res, next) => {
     try {
         const user = await req.user;
         if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         const { id } = req.params;
         const body = req.body;
@@ -709,18 +709,18 @@ exports.post_inventory_stock__id_dispatch = async (req, res, next) => {
         // Ensure quantity is a number
         const quantityNum = typeof quantity === 'string' ? parseFloat(quantity) : Number(quantity);
         if (!quantityNum || isNaN(quantityNum) || quantityNum <= 0) {
-            return res.json({ success: false, error: 'Valid quantity is required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Valid quantity is required' });
         }
         const stockEntry = await prisma.adminStockEntry.findUnique({ where: { id: id } });
         if (!stockEntry) {
-            return res.json({ success: false, error: 'Stock entry not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Stock entry not found' });
         }
         // Ensure both values are numbers before comparison and subtraction
         const currentQuantity = Number(stockEntry.inventory.currentQuantity) || 0;
         const reservedQuantity = Number(stockEntry.inventory.reservedQuantity) || 0;
         const availableQuantity = Math.max(0, currentQuantity - reservedQuantity);
         if (availableQuantity < quantityNum) {
-            return res.json({ success: false, error: 'Insufficient available quantity' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Insufficient available quantity' });
         }
         const oldQuantity = currentQuantity;
         const newQuantity = oldQuantity - quantityNum;
@@ -756,7 +756,7 @@ exports.post_inventory_stock__id_dispatch = async (req, res, next) => {
     }
     catch (error) {
         console.error('Error dispatching stock:', error);
-        return res.json({ success: false, error: error.message || 'Failed to dispatch stock' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Failed to dispatch stock' });
     }
 
   } catch (error) {
@@ -772,7 +772,7 @@ exports.post_inventory_stock__id_reserve = async (req, res, next) => {
     try {
         const user = await req.user;
         if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         const { id } = req.params;
         const body = req.body;
@@ -780,18 +780,18 @@ exports.post_inventory_stock__id_reserve = async (req, res, next) => {
         // Ensure quantity is a number
         const quantityNum = typeof quantity === 'string' ? parseFloat(quantity) : Number(quantity);
         if (!quantityNum || isNaN(quantityNum) || quantityNum <= 0) {
-            return res.json({ success: false, error: 'Valid quantity is required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Valid quantity is required' });
         }
         const stockEntry = await prisma.adminStockEntry.findUnique({ where: { id: id } });
         if (!stockEntry) {
-            return res.json({ success: false, error: 'Stock entry not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Stock entry not found' });
         }
         // Ensure both values are numbers before comparison and addition
         const currentQuantity = Number(stockEntry.inventory.currentQuantity) || 0;
         const reservedQuantity = Number(stockEntry.inventory.reservedQuantity) || 0;
         const availableQuantity = Math.max(0, currentQuantity - reservedQuantity);
         if (availableQuantity < quantityNum) {
-            return res.json({ success: false, error: 'Insufficient available quantity' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Insufficient available quantity' });
         }
         const oldReserved = reservedQuantity;
         const newReserved = oldReserved + quantityNum;
@@ -818,7 +818,7 @@ exports.post_inventory_stock__id_reserve = async (req, res, next) => {
     }
     catch (error) {
         console.error('Error reserving stock:', error);
-        return res.json({ success: false, error: error.message || 'Failed to reserve stock' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Failed to reserve stock' });
     }
 
   } catch (error) {
@@ -834,7 +834,7 @@ exports.post_inventory_stock__id_restock = async (req, res, next) => {
     try {
         const user = await req.user;
         if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         const { id } = req.params;
         const body = req.body;
@@ -842,11 +842,11 @@ exports.post_inventory_stock__id_restock = async (req, res, next) => {
         // Ensure quantity is a number
         const quantityNum = typeof quantity === 'string' ? parseFloat(quantity) : Number(quantity);
         if (!quantityNum || isNaN(quantityNum) || quantityNum <= 0) {
-            return res.json({ success: false, error: 'Valid quantity is required' }, { status: 400 });
+            return res.status(400).json({ success: false, error: 'Valid quantity is required' });
         }
         const stockEntry = await prisma.adminStockEntry.findUnique({ where: { id: id } });
         if (!stockEntry) {
-            return res.json({ success: false, error: 'Stock entry not found' }, { status: 404 });
+            return res.status(404).json({ success: false, error: 'Stock entry not found' });
         }
         // Ensure both values are numbers before adding
         const oldQuantity = Number(stockEntry.inventory.currentQuantity) || 0;
@@ -894,7 +894,7 @@ exports.post_inventory_stock__id_restock = async (req, res, next) => {
     }
     catch (error) {
         console.error('Error restocking:', error);
-        return res.json({ success: false, error: error.message || 'Failed to restock' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Failed to restock' });
     }
 
   } catch (error) {
@@ -910,7 +910,7 @@ exports.post_inventory_seed = async (req, res, next) => {
     try {
         const user = await req.user;
         if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         // Get the collection directly to drop old indexes
         if (!mongoose.connection.db) {
@@ -1632,7 +1632,7 @@ exports.post_inventory_seed = async (req, res, next) => {
     }
     catch (error) {
         console.error('Error seeding stock data:', error);
-        return res.json({ success: false, error: error.message || 'Failed to seed stock data' }, { status: 500 });
+        return res.status(500).json({ success: false, error: error.message || 'Failed to seed stock data' });
     }
 
   } catch (error) {

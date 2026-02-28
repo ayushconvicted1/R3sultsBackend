@@ -11,13 +11,11 @@ exports.get_adjusters = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, message: 'Not authorized. No token provided.' }, { status: 401 });
-            return addCorsHeaders(response, request);
+            return res.status(401).json({ success: false, message: 'Not authorized. No token provided.' });
         }
         // Check permission
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
-            return addCorsHeaders(response, request);
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         // Get query parameters
         // req.query is already available via Express;
@@ -95,16 +93,14 @@ exports.get_adjusters = async (req, res, next) => {
                 },
             },
         });
-        return addCorsHeaders(response, request);
     }
     catch (error) {
         console.error('Get adjusters error:', error);
-        return res.json({
+        return res.status(500).json({
             success: false,
             error: error.message || 'Internal server error',
             details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-        }, { status: 500 });
-        return addCorsHeaders(response, request);
+        });
     }
 
   } catch (error) {
@@ -119,32 +115,27 @@ exports.post_adjusters = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, message: 'Not authorized. No token provided.' }, { status: 401 });
-            return addCorsHeaders(response, request);
+            return res.status(401).json({ success: false, message: 'Not authorized. No token provided.' });
         }
         // Allow admin and super_admin to create adjusters
         if (tokenPayload.role !== 'SUPER_ADMIN' && tokenPayload.role !== 'ADMIN') {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
-            return addCorsHeaders(response, request);
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         const body = req.body;
         // Validate required fields
         if (!body.firstName || !body.lastName || !body.email) {
-            return res.json({ success: false, error: 'First name, last name, and email are required' }, { status: 400 });
-            return addCorsHeaders(response, request);
+            return res.status(400).json({ success: false, error: 'First name, last name, and email are required' });
         }
         // Check if email already exists
         const existingAdjuster = await prisma.adminAdjuster.findFirst({ where: { email: body.email.toLowerCase() } });
         if (existingAdjuster) {
-            return res.json({ success: false, error: 'An adjuster with this email already exists' }, { status: 400 });
-            return addCorsHeaders(response, request);
+            return res.status(400).json({ success: false, error: 'An adjuster with this email already exists' });
         }
         // Check if adjusterId already exists (if provided)
         if (body.adjusterId) {
             const existingById = await prisma.adminAdjuster.findFirst({ where: { adjusterId: body.adjusterId.toUpperCase() } });
             if (existingById) {
-                return res.json({ success: false, error: 'An adjuster with this ID already exists' }, { status: 400 });
-                return addCorsHeaders(response, request);
+                return res.status(400).json({ success: false, error: 'An adjuster with this ID already exists' });
             }
         }
         // Create new adjuster
@@ -176,16 +167,14 @@ exports.post_adjusters = async (req, res, next) => {
             },
             message: 'Adjuster created successfully',
         });
-        return addCorsHeaders(response, request);
     }
     catch (error) {
         console.error('Create adjuster error:', error);
-        return res.json({
+        return res.status(500).json({
             success: false,
             error: error.message || 'Internal server error',
             details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-        }, { status: 500 });
-        return addCorsHeaders(response, request);
+        });
     }
 
   } catch (error) {
@@ -202,13 +191,11 @@ exports.get_adjusters__id = async (req, res, next) => {
         const tokenPayload = await req.user;
         const { id } = req.params;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-            return addCorsHeaders(response, request);
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         // Check permission
         if (!true) {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
-            return addCorsHeaders(response, request);
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         // Try to find by _id or adjusterId
         let adjuster = await prisma.adminAdjuster.findUnique({ where: { id: id } });
@@ -216,8 +203,7 @@ exports.get_adjusters__id = async (req, res, next) => {
             adjuster = await prisma.adminAdjuster.findFirst({ where: { adjusterId: id.toUpperCase() } });
         }
         if (!adjuster) {
-            return res.json({ success: false, error: 'Adjuster not found' }, { status: 404 });
-            return addCorsHeaders(response, request);
+            return res.status(404).json({ success: false, error: 'Adjuster not found' });
         }
         return res.json({
             success: true,
@@ -229,16 +215,14 @@ exports.get_adjusters__id = async (req, res, next) => {
                 },
             },
         });
-        return addCorsHeaders(response, request);
     }
     catch (error) {
         console.error('Get adjuster error:', error);
-        return res.json({
+        return res.status(500).json({
             success: false,
             error: error.message || 'Internal server error',
             details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-        }, { status: 500 });
-        return addCorsHeaders(response, request);
+        });
     }
 
   } catch (error) {
@@ -254,13 +238,11 @@ exports.put_adjusters__id = async (req, res, next) => {
         const tokenPayload = await req.user;
         const { id } = req.params;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-            return addCorsHeaders(response, request);
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         // Check permission
         if (tokenPayload.role !== 'SUPER_ADMIN' && tokenPayload.role !== 'ADMIN') {
-            return res.json({ success: false, error: 'Permission denied' }, { status: 403 });
-            return addCorsHeaders(response, request);
+            return res.status(403).json({ success: false, error: 'Permission denied' });
         }
         // Find existing adjuster
         let existingAdjuster = await prisma.adminAdjuster.findUnique({ where: { id: id } });
@@ -268,8 +250,7 @@ exports.put_adjusters__id = async (req, res, next) => {
             existingAdjuster = await prisma.adminAdjuster.findFirst({ where: { adjusterId: id.toUpperCase() } });
         }
         if (!existingAdjuster) {
-            return res.json({ success: false, error: 'Adjuster not found' }, { status: 404 });
-            return addCorsHeaders(response, request);
+            return res.status(404).json({ success: false, error: 'Adjuster not found' });
         }
         const body = req.body;
         // If email is being updated, check for duplicates
@@ -278,8 +259,7 @@ exports.put_adjusters__id = async (req, res, next) => {
                     email: body.email.toLowerCase(), id: { not: existingAdjuster.id }
                 } });
             if (duplicateEmail) {
-                return res.json({ success: false, error: 'An adjuster with this email already exists' }, { status: 400 });
-                return addCorsHeaders(response, request);
+                return res.status(400).json({ success: false, error: 'An adjuster with this email already exists' });
             }
             body.email = body.email.toLowerCase();
         }
@@ -289,8 +269,7 @@ exports.put_adjusters__id = async (req, res, next) => {
                     adjusterId: body.adjusterId.toUpperCase(), id: { not: existingAdjuster.id }
                 } });
             if (duplicateId) {
-                return res.json({ success: false, error: 'An adjuster with this ID already exists' }, { status: 400 });
-                return addCorsHeaders(response, request);
+                return res.status(400).json({ success: false, error: 'An adjuster with this ID already exists' });
             }
             body.adjusterId = body.adjusterId.toUpperCase();
         }
@@ -303,8 +282,7 @@ exports.put_adjusters__id = async (req, res, next) => {
         }
         const adjuster = await prisma.adminAdjuster.update({ where: { id: existingAdjuster.id }, data: body });
         if (!adjuster) {
-            return res.json({ success: false, error: 'Adjuster not found' }, { status: 404 });
-            return addCorsHeaders(response, request);
+            return res.status(404).json({ success: false, error: 'Adjuster not found' });
         }
         return res.json({
             success: true,
@@ -317,16 +295,14 @@ exports.put_adjusters__id = async (req, res, next) => {
             },
             message: 'Adjuster updated successfully',
         });
-        return addCorsHeaders(response, request);
     }
     catch (error) {
         console.error('Update adjuster error:', error);
-        return res.json({
+        return res.status(500).json({
             success: false,
             error: error.message || 'Internal server error',
             details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-        }, { status: 500 });
-        return addCorsHeaders(response, request);
+        });
     }
 
   } catch (error) {
@@ -342,13 +318,11 @@ exports.delete_adjusters__id = async (req, res, next) => {
         const tokenPayload = await req.user;
         const { id } = req.params;
         if (!tokenPayload) {
-            return res.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-            return addCorsHeaders(response, request);
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         // Only super_admin can delete adjusters
         if (tokenPayload.role !== 'SUPER_ADMIN') {
-            return res.json({ success: false, error: 'Permission denied. Only super admin can delete adjusters.' }, { status: 403 });
-            return addCorsHeaders(response, request);
+            return res.status(403).json({ success: false, error: 'Permission denied. Only super admin can delete adjusters.' });
         }
         // Try to find and delete by _id or adjusterId
         let adjuster = await prisma.adminAdjuster.delete({ where: { id: id } });
@@ -356,23 +330,20 @@ exports.delete_adjusters__id = async (req, res, next) => {
             adjuster = await Adjuster.findOneAndDelete({ adjusterId: id.toUpperCase() });
         }
         if (!adjuster) {
-            return res.json({ success: false, error: 'Adjuster not found' }, { status: 404 });
-            return addCorsHeaders(response, request);
+            return res.status(404).json({ success: false, error: 'Adjuster not found' });
         }
         return res.json({
             success: true,
             message: 'Adjuster deleted successfully',
         });
-        return addCorsHeaders(response, request);
     }
     catch (error) {
         console.error('Delete adjuster error:', error);
-        return res.json({
+        return res.status(500).json({
             success: false,
             error: error.message || 'Internal server error',
             details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-        }, { status: 500 });
-        return addCorsHeaders(response, request);
+        });
     }
 
   } catch (error) {
@@ -388,23 +359,20 @@ exports.post_adjusters_seed = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, message: 'Not authorized. No token provided.' }, { status: 401 });
-            return addCorsHeaders(response, request);
+            return res.status(401).json({ success: false, message: 'Not authorized. No token provided.' });
         }
         // Only super_admin can seed data
         if (tokenPayload.role !== 'SUPER_ADMIN') {
-            return res.json({ success: false, error: 'Permission denied. Only super admin can seed data.' }, { status: 403 });
-            return addCorsHeaders(response, request);
+            return res.status(403).json({ success: false, error: 'Permission denied. Only super admin can seed data.' });
         }
         // Check if adjusters already exist
         const existingCount = await prisma.adminAdjuster.count();
         if (existingCount > 0) {
-            return res.json({
+            return res.status(400).json({
                 success: false,
                 error: 'Adjusters already exist in the database. Clear existing data first if you want to reseed.',
                 existingCount,
-            }, { status: 400 });
-            return addCorsHeaders(response, request);
+            });
         }
         // Insert premade adjusters
         const adjustersToInsert = premadeAdjusters.map(adj => ({
@@ -429,16 +397,14 @@ exports.post_adjusters_seed = async (req, res, next) => {
                 })),
             },
         });
-        return addCorsHeaders(response, request);
     }
     catch (error) {
         console.error('Seed adjusters error:', error);
-        return res.json({
+        return res.status(500).json({
             success: false,
             error: error.message || 'Internal server error',
             details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-        }, { status: 500 });
-        return addCorsHeaders(response, request);
+        });
     }
 
   } catch (error) {
@@ -453,13 +419,11 @@ exports.delete_adjusters_seed = async (req, res, next) => {
     try {
         const tokenPayload = await req.user;
         if (!tokenPayload) {
-            return res.json({ success: false, message: 'Not authorized. No token provided.' }, { status: 401 });
-            return addCorsHeaders(response, request);
+            return res.status(401).json({ success: false, message: 'Not authorized. No token provided.' });
         }
         // Only super_admin can clear data
         if (tokenPayload.role !== 'SUPER_ADMIN') {
-            return res.json({ success: false, error: 'Permission denied. Only super admin can clear data.' }, { status: 403 });
-            return addCorsHeaders(response, request);
+            return res.status(403).json({ success: false, error: 'Permission denied. Only super admin can clear data.' });
         }
         const result = await prisma.adminAdjuster.deleteMany({ where: {} });
         return res.json({
@@ -469,16 +433,14 @@ exports.delete_adjusters_seed = async (req, res, next) => {
                 deletedCount: result.deletedCount,
             },
         });
-        return addCorsHeaders(response, request);
     }
     catch (error) {
         console.error('Clear adjusters error:', error);
-        return res.json({
+        return res.status(500).json({
             success: false,
             error: error.message || 'Internal server error',
             details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-        }, { status: 500 });
-        return addCorsHeaders(response, request);
+        });
     }
 
   } catch (error) {
