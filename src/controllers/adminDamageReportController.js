@@ -4,6 +4,66 @@ const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'results-jwt-secret-key-2024';
 
+const EXTERNAL_CUSTOMERS_API_URL = process.env.EXTERNAL_CUSTOMERS_API_URL || 'http://localhost:3001/api/users';
+
+// Default 7-step workflow for new damage reports
+const DEFAULT_WORKFLOW_STEPS = [
+  { stepNumber: 1, name: 'Report Created', status: 'completed', completedAt: new Date() },
+  { stepNumber: 2, name: 'Documentation Review', status: 'pending' },
+  { stepNumber: 3, name: 'Adjuster Assignment', status: 'pending' },
+  { stepNumber: 4, name: 'Inspection & Assessment', status: 'pending' },
+  { stepNumber: 5, name: 'Funding Approval', status: 'pending' },
+  { stepNumber: 6, name: 'Repair Work', status: 'pending' },
+  { stepNumber: 7, name: 'Completion & Closeout', status: 'pending' },
+];
+
+// Helper to build workflow steps for seeding with pre-filled statuses
+function getDefaultWorkflowSteps(currentStep, status, userId, userName, userEmail, adjusterSnapshot, inspectionBudget) {
+  return DEFAULT_WORKFLOW_STEPS.map((step) => {
+    const s = { ...step, status: step.stepNumber < currentStep ? 'completed' : step.stepNumber === currentStep ? 'in_progress' : 'pending' };
+    if (s.status === 'completed') {
+      s.completedAt = new Date();
+      s.completedBy = userId;
+    }
+    if (step.stepNumber === 3 && adjusterSnapshot) {
+      s.stepData = { assignedAdjusterSnapshot: adjusterSnapshot };
+    }
+    if (step.stepNumber === 4 && inspectionBudget) {
+      s.stepData = { inspectionBudget };
+    }
+    return s;
+  });
+}
+
+// Helper to map external API user to customer shape
+function mapExternalUserToCustomer(u) {
+  const names = (u.fullName || u.name || '').split(' ');
+  return {
+    customerId: u.id || u._id,
+    firstName: u.firstName || names[0] || '',
+    lastName: u.lastName || names.slice(1).join(' ') || '',
+    email: u.email || '',
+    phone: u.phoneNumber || u.phone || '',
+    address: u.address || undefined,
+  };
+}
+
+// Seed report templates
+const REPORT_TEMPLATES = [
+  { propertyAddress: { street: '123 Main St', city: 'Houston', state: 'TX', zipCode: '77001' }, damageType: 'hurricane', severity: 'severe', description: 'Hurricane damage to roof and exterior walls', affectedAreas: ['Roof', 'Exterior Walls', 'Windows'], estimatedCost: 45000, fundingSources: [] },
+  { propertyAddress: { street: '456 Oak Ave', city: 'Miami', state: 'FL', zipCode: '33101' }, damageType: 'flood', severity: 'moderate', description: 'Flooding in basement and first floor', affectedAreas: ['Basement', 'First Floor', 'Electrical'], estimatedCost: 30000, fundingSources: [] },
+  { propertyAddress: { street: '789 Pine Rd', city: 'Nashville', state: 'TN', zipCode: '37201' }, damageType: 'tornado', severity: 'catastrophic', description: 'Tornado destroyed garage and damaged main structure', affectedAreas: ['Garage', 'Roof', 'Foundation'], estimatedCost: 75000, fundingSources: [] },
+  { propertyAddress: { street: '321 Elm St', city: 'Dallas', state: 'TX', zipCode: '75201' }, damageType: 'fire', severity: 'severe', description: 'Kitchen fire spread to living areas', affectedAreas: ['Kitchen', 'Living Room', 'Electrical'], estimatedCost: 55000, fundingSources: [] },
+  { propertyAddress: { street: '654 Maple Dr', city: 'Phoenix', state: 'AZ', zipCode: '85001' }, damageType: 'storm', severity: 'minor', description: 'Storm damage to windows and siding', affectedAreas: ['Windows', 'Siding'], estimatedCost: 12000, fundingSources: [] },
+  { propertyAddress: { street: '987 Cedar Ln', city: 'Denver', state: 'CO', zipCode: '80201' }, damageType: 'hail', severity: 'moderate', description: 'Hail damage to roof and vehicles', affectedAreas: ['Roof', 'Exterior'], estimatedCost: 22000, fundingSources: [] },
+  { propertyAddress: { street: '147 Birch Ct', city: 'Seattle', state: 'WA', zipCode: '98101' }, damageType: 'wind', severity: 'minor', description: 'Wind damage to fencing and landscaping', affectedAreas: ['Fencing', 'Landscaping'], estimatedCost: 8000, fundingSources: [] },
+  { propertyAddress: { street: '258 Walnut Blvd', city: 'Chicago', state: 'IL', zipCode: '60601' }, damageType: 'flood', severity: 'severe', description: 'Severe flooding from broken levee', affectedAreas: ['Basement', 'First Floor', 'HVAC', 'Electrical'], estimatedCost: 62000, fundingSources: [] },
+  { propertyAddress: { street: '369 Spruce Way', city: 'Atlanta', state: 'GA', zipCode: '30301' }, damageType: 'earthquake', severity: 'moderate', description: 'Foundation cracks and structural damage', affectedAreas: ['Foundation', 'Walls', 'Plumbing'], estimatedCost: 40000, fundingSources: [] },
+  { propertyAddress: { street: '480 Ash Pl', city: 'New Orleans', state: 'LA', zipCode: '70112' }, damageType: 'hurricane', severity: 'catastrophic', description: 'Complete roof loss and water intrusion', affectedAreas: ['Roof', 'Interior', 'Electrical', 'HVAC'], estimatedCost: 90000, fundingSources: [] },
+  { propertyAddress: { street: '591 Willow St', city: 'Tampa', state: 'FL', zipCode: '33601' }, damageType: 'storm', severity: 'moderate', description: 'Storm surge damage to ground floor', affectedAreas: ['Ground Floor', 'Garage', 'Landscaping'], estimatedCost: 35000, fundingSources: [] },
+  { propertyAddress: { street: '702 Poplar Ave', city: 'Oklahoma City', state: 'OK', zipCode: '73101' }, damageType: 'tornado', severity: 'severe', description: 'Tornado damage to multiple structures', affectedAreas: ['Main Structure', 'Outbuilding', 'Fencing', 'Roof'], estimatedCost: 68000, fundingSources: [] },
+];
+
 // ─── damage-reports ───
 exports.get_damage_reports = async (req, res, next) => {
   try {
