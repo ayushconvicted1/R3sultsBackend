@@ -54,6 +54,7 @@ app.use('/api/geofence', require('./routes/geofence'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/cart', require('./routes/cart'));
 app.use('/api/orders', require('./routes/orders'));
+app.use('/api/shop/orders', require('./routes/shopOrders'));
 app.use('/api/mobile', require('./routes/mobile'));
 app.use('/api/weather', require('./routes/weather'));
 app.use('/api/upload', require('./routes/upload'));
