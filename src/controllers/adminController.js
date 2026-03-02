@@ -196,13 +196,48 @@ exports.listUsers = async (req, res, next) => {
     }
 
     const [users, total] = await Promise.all([
-      prisma.user.findMany({ where, skip, take: limit, orderBy: { createdAt: 'desc' } }),
+      prisma.user.findMany({
+        where, skip, take: limit, orderBy: { createdAt: 'desc' },
+        include: {
+          groups: {
+            include: {
+              members: {
+                include: {
+                  user: { select: { id: true, fullName: true, phoneNumber: true, email: true, profilePictureUrl: true } }
+                }
+              }
+            }
+          },
+          members: {
+            where: { isActive: true },
+            include: {
+              group: {
+                include: {
+                  admin: { select: { id: true, fullName: true, phoneNumber: true, email: true } },
+                  members: {
+                    include: {
+                      user: { select: { id: true, fullName: true, phoneNumber: true, email: true, profilePictureUrl: true } }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }),
       prisma.user.count({ where }),
     ]);
 
     res.json({
       success: true,
-      data: { users: users.map(sanitizeUser), pagination: paginationMeta(total, page, limit) },
+      data: {
+        users: users.map(u => ({
+          ...sanitizeUser(u),
+          adminGroups: u.groups || [],
+          memberGroups: u.members || [],
+        })),
+        pagination: paginationMeta(total, page, limit),
+      },
     });
   } catch (error) { next(error); }
 };
