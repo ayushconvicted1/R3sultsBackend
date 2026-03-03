@@ -199,6 +199,7 @@ exports.listUsers = async (req, res, next) => {
       prisma.user.findMany({
         where, skip, take: limit, orderBy: { createdAt: 'desc' },
         include: {
+          addresses: { orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }] },
           groups: {
             include: {
               members: {
@@ -233,6 +234,7 @@ exports.listUsers = async (req, res, next) => {
       data: {
         users: users.map(u => ({
           ...sanitizeUser(u),
+          addresses: u.addresses || [],
           adminGroups: u.groups || [],
           memberGroups: u.members || [],
         })),
@@ -245,7 +247,7 @@ exports.listUsers = async (req, res, next) => {
 exports.getUserDetails = async (req, res, next) => {
   try {
     const { userId } = req.params;
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await prisma.user.findUnique({ where: { id: userId }, include: { addresses: { orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }] } } });
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
     const perms = await prisma.rolePermission.findMany({ where: { role: user.role } });
