@@ -87,6 +87,7 @@ app.use('/api/admin/reports', require('./routes/adminReport'));
 app.use('/api/admin/search', require('./routes/adminSearch'));
 app.use('/api/admin/seed', require('./routes/adminSeed'));
 app.use('/api/admin/mobile', require('./routes/adminMobile'));
+app.use('/api/admin/broadcast', require('./routes/broadcast'));
 
 // ─── Dev Endpoints ───
 const prisma = require('./lib/prisma');

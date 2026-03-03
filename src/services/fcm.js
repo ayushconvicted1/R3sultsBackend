@@ -50,14 +50,14 @@ exports.sendMulticastNotification = async (tokens, title, body, data = {}) => {
   };
 
   try {
-    const response = await admin.messaging().sendMulticast(message);
+    const response = await admin.messaging().sendEachForMulticast(message);
     console.log(`${response.successCount} messages were sent successfully`);
     if (response.failureCount > 0) {
       const failedTokens = [];
       response.responses.forEach((resp, idx) => {
         if (!resp.success) {
           failedTokens.push(validTokens[idx]);
-          console.error(`Token failed: ${validTokens[idx]} - Error: ${resp.error}`);
+          console.error(`Token failed: ${validTokens[idx]} - Error: ${resp?.error}`);
         }
       });
       // Here you might want to remove invalid tokens from DB

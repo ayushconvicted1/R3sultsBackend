@@ -226,6 +226,7 @@ model Vendor {
   rating                Float?        @default(0)
   totalOrders           Int           @default(0)
   lastLoginAt           DateTime?
+  fcmToken              String?
   deletedAt             DateTime?
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
@@ -280,6 +281,7 @@ model Volunteer {
   rejectionReason       String?
   notes                 String?
   lastLoginAt           DateTime?
+  fcmToken              String?
   deletedAt             DateTime?
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @updatedAt
@@ -1122,4 +1124,19 @@ model AdminUser {
 
   @@index([role, status])
   @@map("admin_auth_users")
+}
+
+model Broadcast {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  latitude    Float
+  longitude   Float
+  radius      Float    // in meters
+  sentBy      String   // admin user ID who created the broadcast
+  sentCount   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("broadcasts")
 }
