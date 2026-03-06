@@ -116,6 +116,11 @@ exports.createBroadcast = async (req, res, next) => {
         usersFound: nearbyUsers.length,
         notificationsSent: fcmResult.successCount || tokens.length,
         notificationsFailed: fcmResult.failureCount || 0,
+        users: nearbyUsers.map((u) => ({
+          userId: u.userId,
+          fullName: u.fullName,
+          distance: Math.round(Number(u.distance)),
+        })),
       },
     });
   } catch (error) {
@@ -162,10 +167,25 @@ exports.getBroadcasts = async (req, res, next) => {
       prisma.broadcast.count({ where }),
     ]);
 
+    // Fetch sender details for all unique sentBy IDs
+    const senderIds = [...new Set(broadcasts.map((b) => b.sentBy).filter(Boolean))];
+    const senders = senderIds.length
+      ? await prisma.user.findMany({
+          where: { id: { in: senderIds } },
+          select: { id: true, fullName: true, email: true, phoneNumber: true, role: true },
+        })
+      : [];
+    const senderMap = Object.fromEntries(senders.map((s) => [s.id, s]));
+
+    const broadcastsWithSender = broadcasts.map((b) => ({
+      ...b,
+      sentByUser: senderMap[b.sentBy] || null,
+    }));
+
     res.json({
       success: true,
       data: {
-        broadcasts,
+        broadcasts: broadcastsWithSender,
         pagination: {
           page,
           limit,
@@ -194,7 +214,15 @@ exports.getBroadcastById = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Broadcast not found' });
     }
 
-    res.json({ success: true, data: { broadcast } });
+    // Fetch sender details
+    const sentByUser = broadcast.sentBy
+      ? await prisma.user.findUnique({
+          where: { id: broadcast.sentBy },
+          select: { id: true, fullName: true, email: true, phoneNumber: true, role: true },
+        })
+      : null;
+
+    res.json({ success: true, data: { broadcast: { ...broadcast, sentByUser } } });
   } catch (error) {
     next(error);
   }
