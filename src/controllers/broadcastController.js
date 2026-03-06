@@ -92,22 +92,7 @@ exports.createBroadcast = async (req, res, next) => {
       }
     }
 
-    // ── 4. Create in-app Notification records for each targeted user ──
-    const notificationData = nearbyUsers.map((u) => ({
-      userId: u.userId,
-      title,
-      body: description,
-      type: 'broadcast',
-      data: {
-        broadcastLat: latitude,
-        broadcastLng: longitude,
-        broadcastRadius: radius,
-      },
-    }));
-
-    await prisma.notification.createMany({ data: notificationData });
-
-    // ── 5. Persist broadcast record for auditing ──
+    // ── 4. Persist broadcast record for auditing ──
     const broadcast = await prisma.broadcast.create({
       data: {
         title,
@@ -119,6 +104,22 @@ exports.createBroadcast = async (req, res, next) => {
         sentCount: nearbyUsers.length,
       },
     });
+
+    // ── 5. Create in-app Notification records for each targeted user ──
+    const notificationData = nearbyUsers.map((u) => ({
+      userId: u.userId,
+      title,
+      body: description,
+      type: 'broadcast',
+      data: {
+        broadcastId: broadcast.id,
+        broadcastLat: latitude,
+        broadcastLng: longitude,
+        broadcastRadius: radius,
+      },
+    }));
+
+    await prisma.notification.createMany({ data: notificationData });
 
     res.status(201).json({
       success: true,
@@ -236,7 +237,30 @@ exports.getBroadcastById = async (req, res, next) => {
         })
       : null;
 
-    res.json({ success: true, data: { broadcast: { ...broadcast, sentByUser } } });
+    // Fetch recipients from Notifications
+    // Since notifications store metadata in the JSON 'data' field, we use a raw query or filtering
+    // Depending on DB (Postgres), we can filter JSON. For clarity, we'll fetch notifications for this type and filter.
+    const notifications = await prisma.notification.findMany({
+      where: {
+        type: 'broadcast',
+        createdAt: {
+          gte: new Date(broadcast.createdAt.getTime() - 5000), // Within 5 seconds of broadcast creation
+          lte: new Date(broadcast.createdAt.getTime() + 5000),
+        },
+      },
+      include: {
+        user: {
+          select: { id: true, fullName: true, email: true, phoneNumber: true },
+        },
+      },
+    });
+
+    // Filter by broadcastId in JSON data
+    const recipients = notifications
+      .filter((n) => n.data && n.data.broadcastId === broadcast.id)
+      .map((n) => n.user);
+
+    res.json({ success: true, data: { broadcast: { ...broadcast, sentByUser, recipients } } });
   } catch (error) {
     next(error);
   }
