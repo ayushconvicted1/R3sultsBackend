@@ -18,12 +18,14 @@ exports.createBroadcast = async (req, res, next) => {
     // ── 1. Find users within the radius using Haversine in raw SQL ──
     // Haversine formula returns distance in meters.
     // We join user_locations → users to grab fcmToken in one query.
-    const nearbyUsers = await prisma.$queryRaw`
+    const rawNearbyUsers = await prisma.$queryRaw`
       SELECT * FROM (
         SELECT
           ul."userId",
           u."fcmToken",
           u."fullName",
+          u."email",
+          u."phoneNumber",
           (
             6371000 * acos(
               LEAST(1.0,
@@ -41,6 +43,16 @@ exports.createBroadcast = async (req, res, next) => {
       WHERE distance <= ${radius}
       ORDER BY distance ASC
     `;
+
+    // Prisma $queryRaw returns BigInt for numeric SQL expressions — convert all to plain JS values
+    const nearbyUsers = rawNearbyUsers.map((u) => ({
+      userId: u.userId,
+      fcmToken: u.fcmToken,
+      fullName: u.fullName,
+      email: u.email,
+      phoneNumber: u.phoneNumber,
+      distance: Math.round(Number(u.distance)),
+    }));
 
     if (!nearbyUsers || nearbyUsers.length === 0) {
       // Still create a broadcast record for audit even if no users found
@@ -119,7 +131,9 @@ exports.createBroadcast = async (req, res, next) => {
         users: nearbyUsers.map((u) => ({
           userId: u.userId,
           fullName: u.fullName,
-          distance: Math.round(Number(u.distance)),
+          email: u.email,
+          phoneNumber: u.phoneNumber,
+          distance: u.distance, // already a rounded plain number
         })),
       },
     });
