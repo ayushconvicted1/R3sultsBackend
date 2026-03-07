@@ -149,13 +149,18 @@ exports.appleSignIn = async (req, res, next) => {
   try {
     const { identityToken, user: appleUser } = req.body;
 
-    const jwt = require('jsonwebtoken');
-    const decoded = jwt.decode(identityToken, { complete: true });
-    if (!decoded) {
+    const appleSignin = require('apple-signin-auth');
+    let payload;
+    try {
+      payload = await appleSignin.verifyIdToken(identityToken, {
+        audience: process.env.APPLE_CLIENT_ID,
+        ignoreExpiration: false,
+      });
+    } catch (verifyError) {
       return res.status(401).json({ success: false, message: 'Invalid Apple identity token' });
     }
 
-    const { sub: providerId, email } = decoded.payload;
+    const { sub: providerId, email } = payload;
     const fullName = appleUser?.fullName
       ? `${appleUser.fullName.givenName || ''} ${appleUser.fullName.familyName || ''}`.trim()
       : null;
