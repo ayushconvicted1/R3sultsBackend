@@ -527,3 +527,151 @@ exports.delete_users__id = async (req, res, next) => {
     next(error);
   }
 };
+
+// ─── Create App User (Prisma User model) ───
+/**
+ * @swagger
+ * /admin/users-mgmt/create-app-user:
+ *   post:
+ *     summary: Create a new app user
+ *     description: Creates a new user in the app's User table. Requires admin authentication. At least one of phoneNumber or email is required.
+ *     tags: [Admin - User Management]
+ *     security: [{ BearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: []
+ *             properties:
+ *               phoneNumber:       { type: string, description: "User's phone number (unique)", example: "+911234567890" }
+ *               email:             { type: string, description: "User's email address (unique)", example: "user@example.com" }
+ *               fullName:          { type: string, description: "User's full name", example: "John Doe" }
+ *               password:          { type: string, description: "Password (min 6 chars, will be hashed)", example: "SecurePass@123" }
+ *               role:              { type: string, enum: [SUPER_ADMIN, ADMIN, MEMBER, GUEST], default: MEMBER, description: "User role" }
+ *               gender:            { type: string, enum: [male, female, other], description: "Gender" }
+ *               dateOfBirth:       { type: string, format: date, description: "Date of birth (ISO format)", example: "1990-05-15" }
+ *               bloodGroup:        { type: string, description: "Blood group", example: "O+" }
+ *               address:           { type: string, description: "Address line" }
+ *               city:              { type: string, description: "City" }
+ *               state:             { type: string, description: "State" }
+ *               country:           { type: string, default: India, description: "Country" }
+ *               pincode:           { type: string, description: "Pincode / ZIP" }
+ *               emergencyContactName:  { type: string, description: "Emergency contact name" }
+ *               emergencyContactPhone: { type: string, description: "Emergency contact phone" }
+ *               profilePictureUrl: { type: string, description: "Profile picture URL" }
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *       400:
+ *         description: Validation error or duplicate user
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Admin access required
+ */
+exports.createAppUser = async (req, res, next) => {
+  try {
+    const {
+      phoneNumber,
+      email,
+      fullName,
+      password,
+      role,
+      gender,
+      dateOfBirth,
+      bloodGroup,
+      address,
+      city,
+      state,
+      country,
+      pincode,
+      emergencyContactName,
+      emergencyContactPhone,
+      profilePictureUrl,
+      username,
+    } = req.body;
+
+    // ── Validation ──
+    if (!phoneNumber && !email) {
+      return res.status(400).json({
+        success: false,
+        message: 'At least one of phoneNumber or email is required',
+      });
+    }
+
+    if (password && password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters',
+      });
+    }
+
+    // ── Check duplicates ──
+    const orConditions = [];
+    if (phoneNumber) orConditions.push({ phoneNumber });
+    if (email) orConditions.push({ email: email.toLowerCase() });
+    if (username) orConditions.push({ username });
+
+    const existing = await prisma.user.findFirst({
+      where: { OR: orConditions },
+    });
+
+    if (existing) {
+      let duplicateField = 'phone number, email, or username';
+      if (phoneNumber && existing.phoneNumber === phoneNumber) duplicateField = 'phone number';
+      else if (email && existing.email === email.toLowerCase()) duplicateField = 'email';
+      else if (username && existing.username === username) duplicateField = 'username';
+
+      return res.status(400).json({
+        success: false,
+        message: `A user already exists with this ${duplicateField}`,
+      });
+    }
+
+    // ── Build create data ──
+    const createData = {
+      phoneNumber: phoneNumber || null,
+      email: email ? email.toLowerCase() : null,
+      fullName: fullName || null,
+      username: username || null,
+      role: role || 'MEMBER',
+      authProvider: 'phone',
+      isActive: true,
+      isVerified: true,
+      phoneVerified: !!phoneNumber,
+      emailVerified: !!email,
+    };
+
+    // Optional fields
+    if (password) {
+      createData.passwordHash = await bcrypt.hash(password, 12);
+    }
+    if (gender) createData.gender = gender;
+    if (dateOfBirth) createData.dateOfBirth = new Date(dateOfBirth);
+    if (bloodGroup) createData.bloodGroup = bloodGroup;
+    if (address) createData.address = address;
+    if (city) createData.city = city;
+    if (state) createData.state = state;
+    if (country) createData.country = country;
+    if (pincode) createData.pincode = pincode;
+    if (emergencyContactName) createData.emergencyContactName = emergencyContactName;
+    if (emergencyContactPhone) createData.emergencyContactPhone = emergencyContactPhone;
+    if (profilePictureUrl) createData.profilePictureUrl = profilePictureUrl;
+
+    const user = await prisma.user.create({ data: createData });
+
+    // Sanitize — remove sensitive fields
+    const { passwordHash, otpCode, otpExpiresAt, otpAttempts, refreshToken, ...safeUser } = user;
+
+    res.status(201).json({
+      success: true,
+      message: 'User created successfully',
+      data: { user: safeUser },
+    });
+  } catch (error) {
+    console.error('createAppUser error:', error);
+    next(error);
+  }
+};
