@@ -35,7 +35,7 @@ router.post('/register', validate([
  * @swagger
  * /auth/login:
  *   post:
- *     summary: Login with phone number
+ *     summary: Login with phone number or email
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -43,16 +43,22 @@ router.post('/register', validate([
  *         application/json:
  *           schema:
  *             type: object
- *             required: [phoneNumber, password]
+ *             required: [password]
  *             properties:
  *               phoneNumber: { type: string }
+ *               email: { type: string, format: email }
  *               password: { type: string }
  *     responses:
  *       200: { description: Login successful, returns tokens }
  *       401: { description: Invalid credentials }
  */
 router.post('/login', validate([
-  body('phoneNumber').notEmpty().withMessage('Phone number is required'),
+  body().custom((_, { req }) => {
+    if (!req.body.phoneNumber && !req.body.email) {
+      throw new Error('Phone number or email is required');
+    }
+    return true;
+  }),
   body('password').notEmpty().withMessage('Password is required'),
 ]), auth.login);
 
