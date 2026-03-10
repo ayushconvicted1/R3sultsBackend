@@ -4,6 +4,25 @@ const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'results-jwt-secret-key-2024';
 
+/**
+ * Generate a unique username from a full name.
+ * Format: lowercase name (no spaces/special chars) + random 4-digit salt.
+ */
+const generateUniqueUsername = async (fullName) => {
+  const base = (fullName || 'user')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    .slice(0, 20) || 'user';
+
+  for (let i = 0; i < 10; i++) {
+    const salt = Math.floor(1000 + Math.random() * 9000);
+    const candidate = `${base}${salt}`;
+    const exists = await prisma.user.findUnique({ where: { username: candidate } });
+    if (!exists) return candidate;
+  }
+  return `${base}${Date.now().toString(36)}`;
+};
+
 // ─── users ───
 exports.get_users = async (req, res, next) => {
   try {
@@ -631,11 +650,13 @@ exports.createAppUser = async (req, res, next) => {
     }
 
     // ── Build create data ──
+    const autoUsername = username || await generateUniqueUsername(fullName);
+
     const createData = {
       phoneNumber: phoneNumber || null,
       email: email ? email.toLowerCase() : null,
       fullName: fullName || null,
-      username: username || null,
+      username: autoUsername,
       role: role || 'MEMBER',
       authProvider: 'phone',
       isActive: true,

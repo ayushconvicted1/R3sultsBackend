@@ -8,6 +8,27 @@ const sanitizeUser = (user) => {
   return safe;
 };
 
+/**
+ * Generate a unique username from a full name.
+ * Format: lowercase name (no spaces/special chars) + random 4-digit salt.
+ * e.g. "John Doe" → "johndoe4821"
+ */
+const generateUniqueUsername = async (fullName) => {
+  const base = (fullName || 'user')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    .slice(0, 20) || 'user';
+
+  for (let i = 0; i < 10; i++) {
+    const salt = Math.floor(1000 + Math.random() * 9000); // 4-digit random
+    const candidate = `${base}${salt}`;
+    const exists = await prisma.user.findUnique({ where: { username: candidate } });
+    if (!exists) return candidate;
+  }
+  // Fallback: use timestamp
+  return `${base}${Date.now().toString(36)}`;
+};
+
 exports.register = async (req, res, next) => {
   try {
     const { phoneNumber, password, fullName, email, username } = req.body;
@@ -23,13 +44,15 @@ exports.register = async (req, res, next) => {
     const otp = generateOTP();
     const otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
+    const autoUsername = username || await generateUniqueUsername(fullName);
+
     const user = await prisma.user.create({
       data: {
         phoneNumber,
         passwordHash,
         fullName,
         email: email || null,
-        username: username || null,
+        username: autoUsername,
         otpCode: otp,
         otpExpiresAt,
         authProvider: 'phone',
@@ -125,10 +148,12 @@ exports.googleSignIn = async (req, res, next) => {
         data: { lastLoginAt: new Date(), authProvider: 'google', providerId },
       });
     } else {
+      const autoUsername = await generateUniqueUsername(name);
       user = await prisma.user.create({
         data: {
           email,
           fullName: name,
+          username: autoUsername,
           profilePictureUrl: picture,
           authProvider: 'google',
           providerId,
@@ -186,10 +211,12 @@ exports.appleSignIn = async (req, res, next) => {
         data: { lastLoginAt: new Date(), authProvider: 'apple', providerId },
       });
     } else {
+      const autoUsername = await generateUniqueUsername(fullName);
       user = await prisma.user.create({
         data: {
           email: email || null,
           fullName,
+          username: autoUsername,
           authProvider: 'apple',
           providerId,
           isVerified: true,
@@ -228,8 +255,9 @@ exports.sendOTP = async (req, res, next) => {
         data: { otpCode: otp, otpExpiresAt, otpAttempts: 0 },
       });
     } else {
+      const autoUsername = await generateUniqueUsername(null);
       user = await prisma.user.create({
-        data: { phoneNumber, otpCode: otp, otpExpiresAt, authProvider: 'phone' },
+        data: { phoneNumber, username: autoUsername, otpCode: otp, otpExpiresAt, authProvider: 'phone' },
       });
     }
 
