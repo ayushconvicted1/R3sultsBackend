@@ -50,9 +50,19 @@ exports.register = async (req, res, next) => {
 
 exports.login = async (req, res, next) => {
   try {
-    const { phoneNumber, password } = req.body;
+    const { phoneNumber, email, password } = req.body;
 
-    const user = await prisma.user.findUnique({ where: { phoneNumber } });
+    if (!password || (!phoneNumber && !email)) {
+      return res.status(400).json({ success: false, message: 'Please provide (phoneNumber or email) and password' });
+    }
+
+    let user = null;
+    if (phoneNumber) {
+      user = await prisma.user.findUnique({ where: { phoneNumber } });
+    } else if (email) {
+      user = await prisma.user.findUnique({ where: { email } });
+    }
+
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
