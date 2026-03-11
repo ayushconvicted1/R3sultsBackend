@@ -696,3 +696,74 @@ exports.createAppUser = async (req, res, next) => {
     next(error);
   }
 };
+
+// ─── Delete App User (Prisma User model) ───
+/**
+ * @swagger
+ * /admin/users-mgmt/delete-app-user/{id}:
+ *   delete:
+ *     summary: Delete an app user
+ *     description: Permanently deletes an app user and all related data. Requires admin authentication.
+ *     tags: [Admin - User Management]
+ *     security: [{ BearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *         description: The user ID to delete
+ *     responses:
+ *       200:
+ *         description: User deleted successfully
+ *       404:
+ *         description: User not found
+ *       401:
+ *         description: Unauthorized
+ */
+exports.deleteAppUser = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Delete all related records in a transaction
+    await prisma.$transaction(async (tx) => {
+      // Location & geofence related
+      await tx.geofenceEvent.deleteMany({ where: { userId: id } });
+      await tx.geofence.deleteMany({ where: { userId: id } });
+      await tx.locationHistory.deleteMany({ where: { userId: id } });
+      await tx.locationSharing.deleteMany({ where: { OR: [{ userId: id }, { sharedWithId: id }] } });
+      await tx.userLocation.deleteMany({ where: { userId: id } });
+
+      // Group & member related
+      await tx.member.deleteMany({ where: { userId: id } });
+      // For groups where user is admin, delete members first then the group
+      const adminGroups = await tx.group.findMany({ where: { adminId: id } });
+      for (const group of adminGroups) {
+        await tx.member.deleteMany({ where: { groupId: group.id } });
+      }
+      await tx.group.deleteMany({ where: { adminId: id } });
+
+      // Property photos
+      await tx.propertyPhoto.deleteMany({ where: { userId: id } });
+
+      // Notifications & addresses (cascade exists but being explicit)
+      await tx.notification.deleteMany({ where: { userId: id } });
+      await tx.userAddress.deleteMany({ where: { userId: id } });
+
+      // Finally delete the user
+      await tx.user.delete({ where: { id } });
+    });
+
+    res.json({
+      success: true,
+      message: 'User and all related data deleted successfully',
+    });
+  } catch (error) {
+    console.error('deleteAppUser error:', error);
+    next(error);
+  }
+};

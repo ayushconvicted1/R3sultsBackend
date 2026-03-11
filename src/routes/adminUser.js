@@ -15,4 +15,7 @@ router.delete('/:id', ctrl.delete_users__id);
 // Create app user (Prisma User model — for admin panel)
 router.post('/create-app-user', ctrl.createAppUser);
 
+// Delete app user (Prisma User model — for admin panel)
+router.delete('/delete-app-user/:id', ctrl.deleteAppUser);
+
 module.exports = router;
