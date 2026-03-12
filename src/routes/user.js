@@ -307,6 +307,18 @@ router.patch('/status', user.updateStatus);
 
 /**
  * @swagger
+ * /user/trigger-sos:
+ *   post:
+ *     summary: Trigger SOS alert
+ *     tags: [User]
+ *     security: [{ BearerAuth: [] }]
+ *     responses:
+ *       200: { description: SOS triggered }
+ */
+router.post('/trigger-sos', user.triggerSos);
+
+/**
+ * @swagger
  * /user/admin/status-radius:
  *   post:
  *     summary: Mark users unverified in radius

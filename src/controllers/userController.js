@@ -536,4 +536,158 @@ exports.updateFcmToken = async (req, res, next) => {
   }
 };
 
+// ─── SOS Trigger ───
+/**
+ * @swagger
+ * /user/trigger-sos:
+ *   post:
+ *     summary: Trigger SOS alert
+ *     description: |
+ *       Sets user status to UNSAFE, notifies all family members via push notification,
+ *       creates persistent notification records, and creates an AdminEmergency record
+ *       visible in the admin panel.
+ *     tags: [User]
+ *     security: [{ BearerAuth: [] }]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               message: { type: string, description: "Optional emergency message" }
+ *               latitude: { type: number }
+ *               longitude: { type: number }
+ *     responses:
+ *       200: { description: SOS triggered successfully }
+ */
+exports.triggerSos = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { message, latitude, longitude } = req.body;
+
+    // 1. Set user status to UNSAFE
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: { status: 'UNSAFE' },
+    });
+
+    const userName = user.fullName || user.phoneNumber || 'A family member';
+    const sosMessage = message || `${userName} has triggered an SOS emergency alert!`;
+
+    // 2. Fetch family members — groups where user is admin + groups where user is a member
+    const [adminGroup, memberRecords] = await Promise.all([
+      prisma.group.findFirst({
+        where: { adminId: userId },
+        include: { members: { where: { isActive: true }, include: { user: { select: { id: true, fcmToken: true, fullName: true } } } } },
+      }),
+      prisma.member.findMany({
+        where: { userId, isActive: true },
+        include: {
+          group: {
+            include: {
+              admin: { select: { id: true, fcmToken: true, fullName: true } },
+              members: { where: { isActive: true }, include: { user: { select: { id: true, fcmToken: true, fullName: true } } } },
+            },
+          },
+        },
+      }),
+    ]);
+
+    // Collect unique family member user IDs (excluding triggering user)
+    const familyUserMap = new Map(); // userId -> { id, fcmToken }
+    if (adminGroup) {
+      for (const m of adminGroup.members) {
+        if (m.user.id !== userId) familyUserMap.set(m.user.id, m.user);
+      }
+    }
+    for (const mr of memberRecords) {
+      // Add admin of the group
+      if (mr.group.admin && mr.group.admin.id !== userId) {
+        familyUserMap.set(mr.group.admin.id, mr.group.admin);
+      }
+      // Add other members
+      for (const m of mr.group.members) {
+        if (m.user.id !== userId) familyUserMap.set(m.user.id, m.user);
+      }
+    }
+
+    const familyMembers = Array.from(familyUserMap.values());
+
+    // 3. Send FCM push notifications to family members
+    const fcmTokens = familyMembers.map(m => m.fcmToken).filter(Boolean);
+    if (fcmTokens.length > 0) {
+      try {
+        await fcm.sendMulticastNotification(
+          fcmTokens,
+          '🚨 SOS Emergency Alert',
+          sosMessage,
+          { type: 'SOS_ALERT', userId, userName }
+        );
+      } catch (fcmError) {
+        console.error('FCM notification failed (non-blocking):', fcmError);
+      }
+    }
+
+    // 4. Create persistent notification records for family members
+    if (familyMembers.length > 0) {
+      await prisma.notification.createMany({
+        data: familyMembers.map(m => ({
+          userId: m.id,
+          title: '🚨 SOS Emergency Alert',
+          body: sosMessage,
+          type: 'sos_alert',
+          data: { type: 'SOS_ALERT', triggeredBy: userId, userName },
+        })),
+      });
+    }
+
+    // 5. Create AdminEmergency record for admin panel
+    const locationCoords = (latitude && longitude) ? [longitude, latitude] : [0, 0];
+    let locationAddress = '';
+    try {
+      const userLoc = await prisma.userLocation.findUnique({ where: { userId } });
+      if (userLoc) {
+        locationAddress = userLoc.address || '';
+        if (!latitude && !longitude) {
+          locationCoords[0] = userLoc.longitude;
+          locationCoords[1] = userLoc.latitude;
+        }
+      }
+    } catch (_) { /* ignore */ }
+
+    await prisma.adminEmergency.create({
+      data: {
+        title: `SOS Alert — ${userName}`,
+        description: sosMessage,
+        type: 'rescue',
+        priority: 'critical',
+        status: 'pending',
+        numberOfPeople: 1,
+        location: {
+          type: 'Point',
+          coordinates: locationCoords,
+          address: locationAddress,
+        },
+        requestedBy: {
+          name: userName,
+          phone: user.phoneNumber || '',
+          email: user.email || '',
+        },
+      },
+    });
+
+    res.json({
+      success: true,
+      message: 'SOS alert triggered successfully. Emergency services and family members have been notified.',
+      data: {
+        status: 'UNSAFE',
+        familyMembersNotified: familyMembers.length,
+      },
+    });
+  } catch (error) {
+    console.error('triggerSos error:', error);
+    next(error);
+  }
+};
+
 
