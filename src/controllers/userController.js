@@ -644,10 +644,32 @@ exports.triggerSos = async (req, res, next) => {
     // 5. Create AdminEmergency record for admin panel
     const locationCoords = (latitude && longitude) ? [longitude, latitude] : [0, 0];
     let locationAddress = '';
+    
+    if (latitude && longitude) {
+      try {
+        const apiKey = process.env.OPENWEATHER_API_KEY;
+        if (apiKey) {
+          const res = await fetch(`http://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=1&appid=${apiKey}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.length > 0) {
+               const st = data[0].state ? `${data[0].state}, ` : '';
+               locationAddress = `${data[0].name}, ${st}${data[0].country}`;
+            }
+          }
+        }
+      } catch (err) {
+         console.error('Reverse geocoding failed:', err);
+      }
+    }
+    
+    // Fallback or combine with UserLocation if available
     try {
       const userLoc = await prisma.userLocation.findUnique({ where: { userId } });
       if (userLoc) {
-        locationAddress = userLoc.address || '';
+        if (!locationAddress && userLoc.address) {
+           locationAddress = userLoc.address;
+        }
         if (!latitude && !longitude) {
           locationCoords[0] = userLoc.longitude;
           locationCoords[1] = userLoc.latitude;
