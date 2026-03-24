@@ -383,7 +383,7 @@ exports.promoteToAdmin = async (req, res, next) => {
 
 exports.updateStatus = async (req, res, next) => {
   try {
-    const { status } = req.body;
+    const { status, unsafeReason } = req.body;
     
     // Allow 'Safe', 'Unsafe', 'Unverified' (case insensitive handling or exact enum)
     // Prisma Enum: SAFE, UNSAFE, UNVERIFIED
@@ -394,9 +394,16 @@ exports.updateStatus = async (req, res, next) => {
         return res.status(400).json({ success: false, message: 'Invalid status' });
     }
 
+    const dataToUpdate = { status: normalizedStatus };
+    if (normalizedStatus === 'UNSAFE' && unsafeReason !== undefined) {
+        dataToUpdate.unsafeReason = unsafeReason;
+    } else if (normalizedStatus === 'SAFE') {
+        dataToUpdate.unsafeReason = null;
+    }
+
     const user = await prisma.user.update({
         where: { id: req.user.id },
-        data: { status: normalizedStatus }
+        data: dataToUpdate
     });
     
     res.json({ success: true, message: 'Status updated successfully', data: { user: sanitizeUser(user) } });

@@ -130,6 +130,7 @@ model User {
   subscriptionEndsAt     DateTime?
   subscriptionId         String?
   status                 UserStatus    @default(UNVERIFIED)
+  unsafeReason           String?
   fcmToken               String?
 
   groups               Group[]           @relation("GroupAdmin")
