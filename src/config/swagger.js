@@ -56,6 +56,7 @@ const options = {
       { name: 'Upload', description: 'CSV upload & parsing' },
       { name: 'Vendor', description: 'Vendor auth & profile' },
       { name: 'Volunteer', description: 'Volunteer auth & profile' },
+      { name: 'Newsletter', description: 'Newsletter subscription & email broadcasting' },
     ],
   },
   apis: ['./src/routes/*.js'],
