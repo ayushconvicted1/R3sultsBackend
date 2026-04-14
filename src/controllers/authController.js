@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const prisma = require('../lib/prisma');
 const { generateAccessToken, generateRefreshToken, verifyToken } = require('../utils/token');
-const { generateOTP, isOTPExpired, sendSmsOTP } = require('../utils/otp');
+const { generateOTP, isOTPExpired, sendOtpViaGHL } = require('../utils/otp');
 
 const sanitizeUser = (user) => {
   const { passwordHash, otpCode, otpExpiresAt, otpAttempts, refreshToken, ...safe } = user;
@@ -59,7 +59,7 @@ exports.register = async (req, res, next) => {
       },
     });
 
-    await sendSmsOTP(phoneNumber, otp);
+    await sendOtpViaGHL(phoneNumber, otp);
 
     res.status(201).json({
       success: true,
@@ -261,7 +261,7 @@ exports.sendOTP = async (req, res, next) => {
       });
     }
 
-    await sendSmsOTP(phoneNumber, otp);
+    await sendOtpViaGHL(phoneNumber, otp);
 
     res.json({
       success: true,
@@ -336,7 +336,7 @@ exports.forgotPassword = async (req, res, next) => {
         where: { id: user.id },
         data: { otpCode: otp, otpExpiresAt, otpAttempts: 0 },
       });
-      await sendSmsOTP(phoneNumber, otp);
+      await sendOtpViaGHL(phoneNumber, otp);
     }
 
     res.json({
@@ -432,7 +432,7 @@ exports.updatePhone = async (req, res, next) => {
       data: { otpCode: otp, otpExpiresAt, otpAttempts: 0 },
     });
 
-    await sendSmsOTP(phoneNumber, otp);
+    await sendOtpViaGHL(phoneNumber, otp);
 
     res.json({
       success: true,

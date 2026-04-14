@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const prisma = require('../lib/prisma');
-const { generateOTP, sendSmsOTP } = require('../utils/otp');
+const { generateOTP, sendOtpViaGHL } = require('../utils/otp');
 
 const sanitizeUser = (user) => {
   if (!user) return null;

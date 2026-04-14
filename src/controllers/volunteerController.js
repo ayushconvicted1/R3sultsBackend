@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const prisma = require('../lib/prisma');
 const { generateAccessToken, generateRefreshToken, verifyToken } = require('../utils/token');
-const { generateOTP, isOTPExpired, sendSmsOTP } = require('../utils/otp');
+const { generateOTP, isOTPExpired, sendOtpViaGHL } = require('../utils/otp');
 const { paginate, paginationMeta } = require('../utils/pagination');
 
 const sanitize = (v) => {
@@ -33,7 +33,7 @@ exports.signup = async (req, res, next) => {
       },
     });
 
-    await sendSmsOTP(phoneNumber, otp);
+    await sendOtpViaGHL(phoneNumber, otp);
 
     res.status(201).json({
       success: true,
@@ -77,7 +77,7 @@ exports.sendOTP = async (req, res, next) => {
       await prisma.volunteer.update({ where: { id: volunteer.id }, data: { otpCode: otp, otpExpiresAt, otpAttempts: 0 } });
     }
 
-    await sendSmsOTP(phoneNumber, otp);
+    await sendOtpViaGHL(phoneNumber, otp);
     res.json({ success: true, message: 'OTP sent successfully', data: { phoneNumber, expiresIn: 300 } });
   } catch (error) { next(error); }
 };
@@ -109,7 +109,7 @@ exports.forgotPassword = async (req, res, next) => {
         where: { id: volunteer.id },
         data: { otpCode: otp, otpExpiresAt: new Date(Date.now() + 5 * 60 * 1000), otpAttempts: 0 },
       });
-      await sendSmsOTP(phoneNumber, otp);
+      await sendOtpViaGHL(phoneNumber, otp);
     }
     res.json({ success: true, message: 'If account exists, OTP will be sent', data: { expiresIn: 300 } });
   } catch (error) { next(error); }

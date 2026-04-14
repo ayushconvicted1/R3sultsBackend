@@ -4,34 +4,154 @@ const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-const isOTPExpired = (expiresAt) => {
+const isOTPExpired = expiresAt => {
   return new Date() > new Date(expiresAt);
 };
 
-const sendSmsOTP = async (phoneNumber, otp) => {
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`[DEV] OTP for ${phoneNumber}: ${otp}`);
-    return true;
+const axios = require('axios');
+
+const GoHighLevelKey = process.env.GOHIGHLEVEL_API_KEY;
+const GoHighLevelNumber = process.env.GOHIGHLEVEL_NUMBER;
+
+const requestHeaders = {
+  Authorization: `Bearer ${GoHighLevelKey}`,
+  Version: '2021-07-28',
+  'Content-Type': 'application/json',
+};
+
+const findGHLContactByPhone = async phone => {
+  try {
+    const response = await axios.get(
+      `https://services.leadconnectorhq.com/contacts?phone=${encodeURIComponent(
+        phone,
+      )}`,
+      { headers: requestHeaders },
+    );
+
+    const contacts =
+      response.data?.data ?? response.data?.contacts ?? response.data;
+    if (Array.isArray(contacts) && contacts.length > 0) {
+      return contacts[0]?.id || contacts[0]?.contactId || contacts[0]?._id;
+    }
+  } catch (error) {
+    return null;
   }
 
+  return null;
+};
+
+const createGHLContact = async phone => {
+  const locationId = process.env.GOHIGHLEVEL_LOCATION_ID;
+  const country = process.env.GOHIGHLEVEL_COUNTRY || 'US';
+  if (!locationId) {
+    throw new Error('Missing GOHIGHLEVEL_LOCATION_ID environment variable');
+  }
+
+  const existingContactId = await findGHLContactByPhone(phone);
+  if (existingContactId) {
+    return { contactId: existingContactId, created: false };
+  }
+
+  const contactPayload = {
+    name: 'OTP Contact',
+    firstName: 'OTP',
+    lastName: 'Contact',
+    phone,
+    country,
+    locationId,
+    source: 'public api',
+  };
+
   try {
-    if (process.env.TWILIO_ACCOUNT_SID) {
-      const twilio = require('twilio')(
-        process.env.TWILIO_ACCOUNT_SID,
-        process.env.TWILIO_AUTH_TOKEN
-      );
-      await twilio.messages.create({
-        body: `Your R3sults verification code is: ${otp}. Valid for 5 minutes.`,
-        from: process.env.TWILIO_PHONE_NUMBER,
-        to: phoneNumber,
-      });
-    } else {
-      console.log(`[SMS] OTP for ${phoneNumber}: ${otp}`);
+    const response = await axios.post(
+      'https://services.leadconnectorhq.com/contacts',
+      contactPayload,
+      { headers: requestHeaders },
+    );
+
+    const contactId = response.data?.id || response.data?.data?.id;
+    if (!contactId) {
+      throw new Error('Failed to create GoHighLevel contact');
     }
+
+    return { contactId, created: true };
+  } catch (error) {
+    const duplicateContactId = error?.response?.data?.meta?.contactId;
+    if (duplicateContactId) {
+      return { contactId: duplicateContactId, created: false };
+    }
+    throw error;
+  }
+};
+
+const deleteGHLContact = async contactId => {
+  if (!contactId) return;
+
+  await axios.delete(
+    `https://services.leadconnectorhq.com/contacts/${contactId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${GoHighLevelKey}`,
+        Version: '2021-07-28',
+        'Content-Type': 'application/json',
+      },
+    },
+  );
+};
+
+const sendOtpViaGHL = async (phone, otp) => {
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[DEV] OTP for ${phone}: ${otp}`);
+    // return true; // (Optional: commenting out so development also hits GHL or you can leave it)
+  }
+
+  let contactId;
+  let createdContact = false;
+
+  try {
+    const result = await createGHLContact(phone);
+    contactId = result.contactId;
+    createdContact = result.created;
+
+    const fromNumber = GoHighLevelNumber;
+    if (!fromNumber) {
+      throw new Error('Missing GOHIGHLEVEL_NUMBER environment variable');
+    }
+
+    console.log(`[SMS] Sending OTP to contactId: ${contactId} via GoHighLevel`);
+
+    const response = await axios.post(
+      'https://services.leadconnectorhq.com/conversations/messages',
+      {
+        type: 'SMS',
+        contactId,
+        message: `Your OTP is ${otp}`,
+        status: 'pending',
+        fromNumber,
+        toNumber: phone,
+      },
+      { headers: requestHeaders },
+    );
+
+    console.log('[SMS] GoHighLevel API success:', response.data);
     return true;
   } catch (error) {
-    console.error('SMS send error:', error);
+    console.error(
+      '[SMS] GoHighLevel send error:',
+      error?.response?.data || error.message,
+    );
     return false;
+  } finally {
+    if (contactId && createdContact) {
+      try {
+        await deleteGHLContact(contactId);
+      } catch (deleteError) {
+        console.error(
+          '[SMS] Failed to delete temporary GoHighLevel contact:',
+          deleteError?.response?.data || deleteError.message,
+        );
+      }
+    }
   }
 };
 
@@ -69,4 +189,4 @@ const sendEmailOTP = async (email, otp) => {
   }
 };
 
-module.exports = { generateOTP, isOTPExpired, sendSmsOTP, sendEmailOTP };
+module.exports = { generateOTP, isOTPExpired, sendOtpViaGHL, sendEmailOTP };

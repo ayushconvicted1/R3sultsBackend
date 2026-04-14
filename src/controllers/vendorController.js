@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const prisma = require('../lib/prisma');
 const { generateAccessToken, generateRefreshToken, verifyToken } = require('../utils/token');
-const { generateOTP, isOTPExpired, sendEmailOTP, sendSmsOTP } = require('../utils/otp');
+const { generateOTP, isOTPExpired, sendEmailOTP, sendOtpViaGHL } = require('../utils/otp');
 
 const sanitize = (v) => {
   if (!v) return null;
@@ -263,7 +263,7 @@ exports.updatePhone = async (req, res, next) => {
       where: { id: req.user.id },
       data: { otpCode: otp, otpExpiresAt: new Date(Date.now() + 5 * 60 * 1000), otpAttempts: 0 },
     });
-    await sendSmsOTP(phoneNumber, otp);
+    await sendOtpViaGHL(phoneNumber, otp);
     res.json({ success: true, message: 'OTP sent for phone verification', data: { phoneNumber, expiresIn: 300 } });
   } catch (error) { next(error); }
 };

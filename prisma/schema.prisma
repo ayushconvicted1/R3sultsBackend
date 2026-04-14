@@ -1155,3 +1155,25 @@ model NewsletterSubscriber {
   @@index([isActive])
   @@map("newsletter_subscribers")
 }
+
+// ═══════════════════════════════════════════════════════════
+// Landing Page CMS
+// ═══════════════════════════════════════════════════════════
+
+model LandingContent {
+  id        String   @id @default(cuid())
+  page      String   // "home" | "about"
+  section   String   // "hero" | "statistics" | "features" | etc.
+  key       String   // "title" | "subtitle" | "stat_1_value" | etc.
+  value     String   @db.Text // text content or Cloudinary URL
+  mediaType String?  // "image" | "video" | null for text
+  publicId  String?  // Cloudinary public_id for cleanup
+  sortOrder Int      @default(0)
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([page, section, key])
+  @@index([page, section])
+  @@map("landing_content")
+}
