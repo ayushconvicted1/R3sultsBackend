@@ -26,6 +26,13 @@ enum AuthProvider {
   email
 }
 
+enum SubscriptionPlan {
+  BASIC
+  PLUS
+  PRO
+  ELITE
+}
+
 enum MemberRelation {
   Father
   Mother
@@ -144,6 +151,7 @@ model User {
   propertyPhotos       PropertyPhoto[]
   notifications        Notification[]
   addresses            UserAddress[]
+  subscription         Subscription?
 
   @@index([phoneNumber])
   @@index([email])
@@ -440,6 +448,44 @@ model Plan {
   updatedAt     DateTime @updatedAt
 
   @@map("plans")
+}
+
+model Subscription {
+  id                          String           @id @default(cuid())
+  userId                      String           @unique
+  plan                        SubscriptionPlan @default(BASIC)
+  status                      String           @default("active") // active, canceled, expired, grace_period, billing_retry
+  platform                    String?          // ios, android
+
+  // Apple StoreKit 2
+  appleTransactionId          String?          @unique
+  appleOriginalTransactionId  String?
+  appleProductId              String?
+
+  // Google Play Billing
+  googlePurchaseToken         String?
+  googleOrderId               String?
+  googleProductId             String?
+
+  // Stripe Billing
+  stripeSubscriptionId        String?
+  stripeCustomerId            String?
+
+  currentPeriodStart          DateTime?
+  currentPeriodEnd            DateTime?
+  canceledAt                  DateTime?
+  expiresAt                   DateTime?
+
+  createdAt                   DateTime         @default(now())
+  updatedAt                   DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([appleOriginalTransactionId])
+  @@index([googlePurchaseToken])
+  @@index([status])
+  @@index([plan])
+  @@map("subscriptions")
 }
 
 model PropertyPhoto {
@@ -1162,18 +1208,15 @@ model NewsletterSubscriber {
 
 model LandingContent {
   id        String   @id @default(cuid())
-  page      String   // "home" | "about"
-  section   String   // "hero" | "statistics" | "features" | etc.
-  key       String   // "title" | "subtitle" | "stat_1_value" | etc.
-  value     String   @db.Text // text content or Cloudinary URL
-  mediaType String?  // "image" | "video" | null for text
-  publicId  String?  // Cloudinary public_id for cleanup
+  page      String   // "home" | "about" | "contact" | "shared"
+  section   String   // "hero" | "delayedEmergencyResponse" | "footer" | etc.
+  content   Json     // Full JSON content for this page-section
   sortOrder Int      @default(0)
   updatedBy String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([page, section, key])
-  @@index([page, section])
+  @@unique([page, section])
+  @@index([page])
   @@map("landing_content")
 }

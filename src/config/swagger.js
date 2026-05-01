@@ -57,6 +57,8 @@ const options = {
       { name: 'Vendor', description: 'Vendor auth & profile' },
       { name: 'Volunteer', description: 'Volunteer auth & profile' },
       { name: 'Newsletter', description: 'Newsletter subscription & email broadcasting' },
+      { name: 'Admin Landing Content', description: 'Admin CMS endpoints for landing page content (CRUD, seed, media upload)' },
+      { name: 'Landing Content (Public)', description: 'Public read-only endpoints for landing page content' },
     ],
   },
   apis: ['./src/routes/*.js'],

@@ -96,6 +96,7 @@ app.use('/api/admin/mobile', require('./routes/adminMobile'));
 app.use('/api/admin/broadcast', require('./routes/broadcast'));
 app.use('/api/admin/landing-content', require('./routes/adminLandingContent'));
 app.use('/api/landing-content', require('./routes/landingPublic'));
+app.use('/api/subscription', require('./routes/subscription'));
 
 // ─── Dev Endpoints ───
 const prisma = require('./lib/prisma');

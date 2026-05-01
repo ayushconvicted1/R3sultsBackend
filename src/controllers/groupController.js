@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const prisma = require('../lib/prisma');
 const { generateOTP, sendOtpViaGHL } = require('../utils/otp');
+const { getPlanMemberLimit, getUserPlan } = require('../services/iapService');
 
 const sanitizeUser = (user) => {
   if (!user) return null;
@@ -21,9 +22,12 @@ exports.addMember = async (req, res, next) => {
       });
     }
 
+    // Get member limit from subscription plan (not hardcoded planLimit)
+    const currentPlan = await getUserPlan(adminId);
+    const memberLimit = getPlanMemberLimit(currentPlan);
     const memberCount = await prisma.member.count({ where: { groupId: group.id, isActive: true } });
-    if (memberCount >= adminUser.planLimit) {
-      return res.status(400).json({ success: false, message: `Member limit reached (${adminUser.planLimit})` });
+    if (memberCount >= memberLimit) {
+      return res.status(400).json({ success: false, message: `Member limit reached (${memberLimit}) for ${currentPlan} plan. Upgrade to add more members.` });
     }
 
     let isNewUser = false;

@@ -2,6 +2,7 @@ const router = require('express').Router();
 const { body } = require('express-validator');
 const validate = require('../middleware/validate');
 const { authenticate, requireRole } = require('../middleware/auth');
+const { requirePlan } = require('../middleware/planGate');
 const tracking = require('../controllers/trackingController');
 
 router.use(authenticate);
@@ -70,7 +71,7 @@ router.get('/location/current', tracking.getCurrentLocation);
  *     responses:
  *       200: { description: User's current location }
  */
-router.get('/location/current/:userId', tracking.getUserCurrentLocation);
+router.get('/location/current/:userId', requirePlan('PLUS'), tracking.getUserCurrentLocation);
 
 /**
  * @swagger
@@ -82,7 +83,7 @@ router.get('/location/current/:userId', tracking.getUserCurrentLocation);
  *     responses:
  *       200: { description: Location history }
  */
-router.get('/location/history', tracking.getLocationHistory);
+router.get('/location/history', requirePlan('PLUS'), tracking.getLocationHistory);
 
 /**
  * @swagger
@@ -99,7 +100,7 @@ router.get('/location/history', tracking.getLocationHistory);
  *     responses:
  *       200: { description: User's location history }
  */
-router.get('/location/history/:userId', tracking.getUserLocationHistory);
+router.get('/location/history/:userId', requirePlan('PLUS'), tracking.getUserLocationHistory);
 
 /**
  * @swagger
@@ -120,7 +121,7 @@ router.get('/location/history/:userId', tracking.getUserLocationHistory);
  *     responses:
  *       200: { description: Location shared }
  */
-router.post('/location/share', validate([
+router.post('/location/share', requirePlan('PLUS'), validate([
   body('sharedWithId').notEmpty(),
 ]), tracking.shareLocation);
 
@@ -184,7 +185,7 @@ router.get('/location/visible', tracking.getVisibleUsers);
  *     responses:
  *       200: { description: Multiple user locations }
  */
-router.post('/location/multiple', validate([
+router.post('/location/multiple', requirePlan('PLUS'), validate([
   body('userIds').isArray(),
 ]), tracking.getMultipleLocations);
 

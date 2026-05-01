@@ -2,6 +2,7 @@ const router = require('express').Router();
 const { body } = require('express-validator');
 const validate = require('../middleware/validate');
 const { authenticate } = require('../middleware/auth');
+const { requirePlan } = require('../middleware/planGate');
 const user = require('../controllers/userController');
 const { upload } = require('../middleware/upload');
 
@@ -315,7 +316,7 @@ router.patch('/status', user.updateStatus);
  *     responses:
  *       200: { description: SOS triggered }
  */
-router.post('/trigger-sos', user.triggerSos);
+router.post('/trigger-sos', requirePlan('PLUS'), user.triggerSos);
 
 /**
  * @swagger

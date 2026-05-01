@@ -2,6 +2,7 @@ const router = require('express').Router();
 const { body } = require('express-validator');
 const validate = require('../middleware/validate');
 const { authenticate } = require('../middleware/auth');
+const { requirePlan } = require('../middleware/planGate');
 const group = require('../controllers/groupController');
 
 router.use(authenticate);
@@ -26,7 +27,7 @@ router.use(authenticate);
  *     responses:
  *       201: { description: Member added }
  */
-router.post('/add-member', validate([
+router.post('/add-member', requirePlan('PLUS'), validate([
   body('fullName').notEmpty().withMessage('Full name is required'),
   body('relation').notEmpty().withMessage('Relation is required'),
 ]), group.addMember);
