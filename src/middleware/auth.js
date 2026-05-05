@@ -42,16 +42,25 @@ const authenticate = async (req, res, next) => {
           id: userId,
           email: decoded.email,
           fullName: decoded.name || decoded.fullName || 'Unknown',
-          role,
+          roleName: role,
           isActive: true,
         };
+      } else {
+        // User from local DB, resolve roleName from roleId
+        if (user.roleId) {
+          const roleRecord = await prisma.role.findUnique({ where: { id: user.roleId } });
+          user.roleName = roleRecord ? roleRecord.name : 'GUEST';
+        } else {
+          // Fallback if roleId is null
+          user.roleName = 'GUEST';
+        }
       }
 
       req.user = user;
       req.userType = 'user';
-      // Normalize role to uppercase to handle tokens with lowercase roles
-      if (req.user.role) {
-        req.user.role = req.user.role.toUpperCase();
+      // Normalize roleName to uppercase to handle tokens with lowercase roles
+      if (req.user.roleName) {
+        req.user.roleName = req.user.roleName.toUpperCase();
       }
     }
 
@@ -72,6 +81,12 @@ const optionalAuth = async (req, res, next) => {
       const decoded = verifyToken(token);
       const user = await prisma.user.findUnique({ where: { id: decoded.id } });
       if (user && user.isActive) {
+        if (user.roleId) {
+          const roleRecord = await prisma.role.findUnique({ where: { id: user.roleId } });
+          user.roleName = roleRecord ? roleRecord.name : 'GUEST';
+        } else {
+          user.roleName = 'GUEST';
+        }
         req.user = user;
         req.userType = 'user';
       }
@@ -87,8 +102,12 @@ const requireRole = (...roles) => {
     if (!req.user) {
       return res.status(401).json({ success: false, message: 'Authentication required' });
     }
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ success: false, message: 'Insufficient permissions' });
+    const userRoleName = (req.user.roleName || '').toUpperCase();
+    if (!roles.includes(userRoleName)) {
+      return res.status(403).json({ 
+        success: false, 
+        message: `Insufficient permissions: your role '${userRoleName}' does not have access. Required: ${roles.join(', ')}`
+      });
     }
     next();
   };
@@ -100,10 +119,11 @@ const requirePermission = (permission) => {
       if (!req.user) {
         return res.status(401).json({ success: false, message: 'Authentication required' });
       }
-      if (req.user.role === 'SUPER_ADMIN') return next();
+      const userRoleName = (req.user.roleName || '').toUpperCase();
+      if (userRoleName === 'SUPER_ADMIN') return next();
 
       const rolePermission = await prisma.rolePermission.findUnique({
-        where: { role_permission: { role: req.user.role, permission } },
+        where: { role_permission: { role: userRoleName, permission } },
       });
       if (!rolePermission) {
         return res.status(403).json({ success: false, message: 'Insufficient permissions' });
@@ -115,4 +135,65 @@ const requirePermission = (permission) => {
   };
 };
 
-module.exports = { authenticate, optionalAuth, requireRole, requirePermission };
+const requireAction = (actionKey) => {
+  return async (req, res, next) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ success: false, message: 'Authentication required' });
+      }
+
+      // SUPER_ADMIN bypasses all action checks
+      const userRoleName = (req.user.roleName || '').toUpperCase();
+      if (userRoleName === 'SUPER_ADMIN') return next();
+
+      const roleId = req.user.roleId || req.user.id; // OpsUser 'id' is often passed directly but OpsUser has a separate role text currently. Wait.
+      // If user is OpsUser, they have a role directly but we should check role table. 
+      // Let's resolve the role dynamically.
+      let roleRecord;
+      if (req.user.roleId) {
+        roleRecord = await prisma.role.findUnique({ where: { id: req.user.roleId } });
+      } else {
+        roleRecord = await prisma.role.findUnique({ where: { name: userRoleName } });
+      }
+
+      if (!roleRecord) {
+        return res.status(403).json({
+          success: false,
+          message: `Access denied: no role assigned to your account`
+        });
+      }
+
+      // Find the action
+      const action = await prisma.action.findUnique({ where: { actionKey } });
+      if (!action || !action.isActive) {
+        return res.status(403).json({
+          success: false,
+          message: `Access denied: action '${actionKey}' is not recognized or inactive`
+        });
+      }
+
+      // Check the mapping
+      const mapping = await prisma.roleActionMap.findUnique({
+        where: { roleId_actionId: { roleId: roleRecord.id, actionId: action.id } }
+      });
+
+      if (!mapping) {
+        return res.status(403).json({
+          success: false,
+          message: `Insufficient permissions: you do not have the '${actionKey}' permission`,
+          error: {
+            code: 'PERMISSION_DENIED',
+            requiredAction: actionKey,
+            userRole: userRoleName
+          }
+        });
+      }
+
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+};
+
+module.exports = { authenticate, optionalAuth, requireRole, requirePermission, requireAction };

@@ -120,7 +120,8 @@ model User {
   phoneVerified          Boolean       @default(false)
   planLimit              Int           @default(2)
   isSubscriber           Boolean       @default(false)
-  role                   UserRole      @default(MEMBER)
+  role                   String        @default("MEMBER")
+  roleId                 String?
   roleAssignedBy         String?
   roleAssignedAt         DateTime?
   lastLoginAt            DateTime?
@@ -158,6 +159,7 @@ model User {
   @@index([authProvider, providerId])
   @@index([planId])
   @@index([status])
+  @@index([roleId])
   @@map("users")
 }
 
@@ -1219,4 +1221,57 @@ model LandingContent {
   @@unique([page, section])
   @@index([page])
   @@map("landing_content")
+}
+
+// ═══════════════════════════════════════════════════════════
+// Dynamic RBAC System
+// ═══════════════════════════════════════════════════════════
+
+model Action {
+  id          String   @id @default(cuid())
+  actionKey   String   @unique
+  httpMethod  String
+  routePath   String
+  module      String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  roleActions RoleActionMap[]
+
+  @@index([module])
+  @@index([isActive])
+  @@map("actions")
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  displayName String?
+  description String?
+  isSystem    Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  roleActions RoleActionMap[]
+
+  @@index([isActive])
+  @@map("roles")
+}
+
+model RoleActionMap {
+  id        String   @id @default(cuid())
+  roleId    String
+  actionId  String
+  createdAt DateTime @default(now())
+
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  action Action @relation(fields: [actionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, actionId])
+  @@index([roleId])
+  @@index([actionId])
+  @@map("role_action_map")
 }

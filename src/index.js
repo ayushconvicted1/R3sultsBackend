@@ -74,6 +74,7 @@ app.use('/api/newsletter', require('./routes/newsletter'));
 // ─── Admin Dashboard Routes (migrated from Next.js) ───
 app.use('/api/admin-auth', require('./routes/adminAuth'));
 app.use('/api/admin/dashboard', require('./routes/dashboardStats'));
+app.use('/api/admin/rbac', require('./routes/adminRbac'));
 app.use('/api/admin/ops-users', require('./routes/opsUser'));
 app.use('/api/admin/disasters', require('./routes/adminDisaster'));
 app.use('/api/admin/emergencies', require('./routes/adminEmergency'));
