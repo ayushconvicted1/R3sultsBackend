@@ -1,6 +1,7 @@
 const prisma = require('../lib/prisma');
 const crypto = require('crypto');
 const { paginate, paginationMeta } = require('../utils/pagination');
+const { processSquarePayment } = require('../services/squareService');
 
 // ─── Helpers ───
 
@@ -29,9 +30,13 @@ exports.createOrder = async (req, res, next) => {
       billingAddress,
       billingSameAsShipping = true,
       shippingAmount = 0,
+      paymentNonce, // Square payment nonce from frontend
     } = req.body;
 
     // Validate required fields
+    if (!paymentNonce) {
+      return res.status(400).json({ success: false, message: 'paymentNonce is required to process payment' });
+    }
     if (!lineItems || !Array.isArray(lineItems) || lineItems.length === 0) {
       return res.status(400).json({ success: false, message: 'lineItems array is required and must not be empty' });
     }
@@ -111,20 +116,29 @@ exports.createOrder = async (req, res, next) => {
       return res.status(500).json({ success: false, message: 'Failed to generate unique order ID' });
     }
 
+    // Process Square Payment
+    const amountCents = Math.round(amountTotal * 100);
+    let paymentResult;
+    try {
+      paymentResult = await processSquarePayment(paymentNonce, amountCents, 'USD', orderId);
+    } catch (paymentError) {
+      return res.status(400).json({ success: false, message: paymentError.message });
+    }
+
     // Build the order record (matches AdminOrder Prisma model)
     const resolvedBilling = billingSameAsShipping ? shippingAddress : (billingAddress || shippingAddress);
 
     const order = await prisma.adminOrder.create({
       data: {
         orderId,
-        stripeSessionId: `DIRECT-${orderId}`, // no Stripe session for direct orders
+        stripeSessionId: `SQUARE-${paymentResult.paymentId}`, // Save Square payment ID here
         customerEmail: shippingAddress.email.trim().toLowerCase(),
-        amountTotalCents: Math.round(amountTotal * 100),
+        amountTotalCents: amountCents,
         amountTotal,
         amountSubtotal: subtotal,
         shippingAmount: shippingAmountNum,
         currency: 'usd',
-        paymentStatus: 'pending', // direct orders start as pending
+        paymentStatus: 'paid', // Mark as paid since Square payment succeeded
         shippingAddress: {
           firstName: shippingAddress.firstName,
           lastName: shippingAddress.lastName,

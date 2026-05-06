@@ -10,11 +10,11 @@ router.get('/current', authenticate, sub.getCurrent);
 router.post('/verify-apple', authenticate, sub.verifyApple);
 router.post('/verify-google', authenticate, sub.verifyGoogle);
 router.post('/restore', authenticate, sub.restore);
-router.post('/create-stripe', authenticate, sub.createStripeSubscription);
+router.post('/create-square-checkout', authenticate, sub.createSquareCheckout);
 
 // Webhooks — no auth (verified by payload signature)
 router.post('/webhook/apple', sub.webhookApple);
 router.post('/webhook/google', sub.webhookGoogle);
-router.post('/webhook/stripe', sub.webhookStripe); // Stripe verifies its own signature
+router.post('/webhook/square', sub.webhookSquare);
 
 module.exports = router;

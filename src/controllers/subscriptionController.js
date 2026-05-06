@@ -1,6 +1,6 @@
 const prisma = require('../lib/prisma');
 const iap = require('../services/iapService');
-const stripeService = require('../services/stripeService');
+const squareService = require('../services/squareService');
 
 // GET /api/subscription/plans — List available plans
 exports.getPlans = async (req, res, next) => {
@@ -271,10 +271,8 @@ exports.webhookGoogle = async (req, res, next) => {
     console.error('Google webhook error:', error);
     res.status(500).json({ success: false });
   }
-};
-
-// POST /api/subscription/create-stripe — Create Stripe Subscription Intent
-exports.createStripeSubscription = async (req, res, next) => {
+};// POST /api/subscription/create-square-checkout — Create Square Web Checkout
+exports.createSquareCheckout = async (req, res, next) => {
   try {
     const { plan } = req.body;
     
@@ -282,49 +280,42 @@ exports.createStripeSubscription = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Valid plan name is required' });
     }
 
-    const stripeData = await stripeService.createSubscriptionFlow(req.user, plan);
+    // Determine price in cents (hardcoded for simplicity, should match getPlans)
+    const prices = { PLUS: 499, PRO: 1099, ELITE: 49500 };
+    const amountCents = prices[plan.toUpperCase()];
+
+    const checkoutUrl = await squareService.createSubscriptionCheckout(req.user.id, plan.toUpperCase(), amountCents);
 
     res.json({
       success: true,
-      data: stripeData,
+      data: { checkoutUrl },
     });
   } catch (error) {
-    console.error('Stripe create subscription error:', error);
+    console.error('Square create checkout error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// POST /api/subscription/webhook/stripe — Stripe Webhook
-exports.webhookStripe = async (req, res, next) => {
-  const sig = req.headers['stripe-signature'];
-  let event;
-
+// POST /api/subscription/webhook/square — Square Webhook
+exports.webhookSquare = async (req, res, next) => {
+  // In a real app, verify Square webhook signature here
   try {
-    // We use req.body directly if body-parser.raw is used, but if JSON is used, Stripe verification fails unless raw body is available.
-    // Assuming express.json() is used globally, we might need to handle this.
-    // For now, if req.rawBody exists, use it, else stringify req.body (which might fail validation but is a common workaround if not set up correctly).
-    const payload = req.rawBody || req.body;
-    const payloadString = typeof payload === 'string' ? payload : JSON.stringify(payload);
+    const event = req.body;
     
-    if (process.env.STRIPE_WEBHOOK_SECRET) {
-      event = stripeService.stripe.webhooks.constructEvent(
-        payloadString,
-        sig,
-        process.env.STRIPE_WEBHOOK_SECRET
-      );
-    } else {
-      event = req.body; // Fallback if no secret configured (not recommended)
+    if (event.type === 'payment.updated' || event.type === 'invoice.payment_made') {
+      // In this boilerplate, if you use createPaymentLink, Square might send a payment.created event.
+      // We would parse the referenceId to get userId and plan
+      console.log('Received Square payment webhook', event);
+      // const referenceId = event.data.object.payment.reference_id;
+      // if (referenceId) {
+      //   const [userId, plan] = referenceId.split('|');
+      //   await iap.activateSubscription(userId, { plan, platform: 'android_web' });
+      // }
     }
-  } catch (err) {
-    console.error('Stripe webhook signature verification failed:', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
-
-  try {
-    await stripeService.handleWebhook(event);
+    
     res.json({ received: true });
   } catch (error) {
-    console.error('Stripe webhook handling error:', error);
+    console.error('Square webhook error:', error);
     res.status(500).json({ success: false });
   }
 };

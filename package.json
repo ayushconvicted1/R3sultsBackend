@@ -41,7 +41,7 @@
     "multer": "^2.0.2",
     "nodemailer": "^8.0.1",
     "pg": "^8.18.0",
-    "stripe": "^20.3.1",
+    "square": "^39.1.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^13.0.0"
