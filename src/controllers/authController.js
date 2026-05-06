@@ -8,6 +8,24 @@ const sanitizeUser = (user) => {
   return safe;
 };
 
+const getDefaultRoleId = async () => {
+  const memberRole = await prisma.role.findUnique({ where: { name: 'MEMBER' } });
+  return memberRole ? memberRole.id : null;
+};
+
+const getUserActions = async (roleName, roleId) => {
+  if (roleName === 'SUPER_ADMIN') {
+    const allActions = await prisma.action.findMany({ where: { isActive: true }, select: { actionKey: true } });
+    return allActions.map(a => a.actionKey);
+  }
+  if (!roleId) return [];
+  const roleActions = await prisma.roleActionMap.findMany({
+    where: { roleId },
+    include: { action: { select: { actionKey: true, isActive: true } } }
+  });
+  return roleActions.map(ra => ra.action).filter(a => a.isActive).map(a => a.actionKey);
+};
+
 /**
  * Generate a unique username from a full name.
  * Format: lowercase name (no spaces/special chars) + random 4-digit salt.
@@ -56,6 +74,7 @@ exports.register = async (req, res, next) => {
         otpCode: otp,
         otpExpiresAt,
         authProvider: 'phone',
+        roleId: await getDefaultRoleId(),
       },
     });
 
@@ -101,7 +120,15 @@ exports.login = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
-    const accessToken = generateAccessToken({ id: user.id, role: user.role, type: 'user' });
+    let roleName = user.role || 'MEMBER';
+    if (user.roleId) {
+      const roleRecord = await prisma.role.findUnique({ where: { id: user.roleId } });
+      if (roleRecord) roleName = roleRecord.name;
+    }
+    user.roleName = roleName;
+    user.actions = await getUserActions(roleName, user.roleId);
+
+    const accessToken = generateAccessToken({ id: user.id, role: roleName, type: 'user' });
     const refreshToken = generateRefreshToken({ id: user.id, type: 'user' });
 
     await prisma.user.update({
@@ -159,6 +186,7 @@ exports.googleSignIn = async (req, res, next) => {
           providerId,
           isVerified: true,
           emailVerified: true,
+          roleId: await getDefaultRoleId(),
         },
       });
       needsPhoneUpdate = true;
@@ -166,7 +194,15 @@ exports.googleSignIn = async (req, res, next) => {
 
     if (!user.phoneNumber) needsPhoneUpdate = true;
 
-    const accessToken = generateAccessToken({ id: user.id, role: user.role, type: 'user' });
+    let roleName = user.role || 'MEMBER';
+    if (user.roleId) {
+      const roleRecord = await prisma.role.findUnique({ where: { id: user.roleId } });
+      if (roleRecord) roleName = roleRecord.name;
+    }
+    user.roleName = roleName;
+    user.actions = await getUserActions(roleName, user.roleId);
+
+    const accessToken = generateAccessToken({ id: user.id, role: roleName, type: 'user' });
     const refreshToken = generateRefreshToken({ id: user.id, type: 'user' });
     await prisma.user.update({ where: { id: user.id }, data: { refreshToken } });
 
@@ -221,6 +257,7 @@ exports.appleSignIn = async (req, res, next) => {
           providerId,
           isVerified: true,
           emailVerified: !!email,
+          roleId: await getDefaultRoleId(),
         },
       });
       needsPhoneUpdate = true;
@@ -228,7 +265,15 @@ exports.appleSignIn = async (req, res, next) => {
 
     if (!user.phoneNumber) needsPhoneUpdate = true;
 
-    const accessToken = generateAccessToken({ id: user.id, role: user.role, type: 'user' });
+    let roleName = user.role || 'MEMBER';
+    if (user.roleId) {
+      const roleRecord = await prisma.role.findUnique({ where: { id: user.roleId } });
+      if (roleRecord) roleName = roleRecord.name;
+    }
+    user.roleName = roleName;
+    user.actions = await getUserActions(roleName, user.roleId);
+
+    const accessToken = generateAccessToken({ id: user.id, role: roleName, type: 'user' });
     const refreshToken = generateRefreshToken({ id: user.id, type: 'user' });
     await prisma.user.update({ where: { id: user.id }, data: { refreshToken } });
 
@@ -257,7 +302,14 @@ exports.sendOTP = async (req, res, next) => {
     } else {
       const autoUsername = await generateUniqueUsername(null);
       user = await prisma.user.create({
-        data: { phoneNumber, username: autoUsername, otpCode: otp, otpExpiresAt, authProvider: 'phone' },
+        data: { 
+          phoneNumber, 
+          username: autoUsername, 
+          otpCode: otp, 
+          otpExpiresAt, 
+          authProvider: 'phone',
+          roleId: await getDefaultRoleId()
+        },
       });
     }
 
@@ -310,7 +362,15 @@ exports.verifyOTP = async (req, res, next) => {
       },
     });
 
-    const accessToken = generateAccessToken({ id: updated.id, role: updated.role, type: 'user' });
+    let roleName = updated.role || 'MEMBER';
+    if (updated.roleId) {
+      const roleRecord = await prisma.role.findUnique({ where: { id: updated.roleId } });
+      if (roleRecord) roleName = roleRecord.name;
+    }
+    updated.roleName = roleName;
+    updated.actions = await getUserActions(roleName, updated.roleId);
+
+    const accessToken = generateAccessToken({ id: updated.id, role: roleName, type: 'user' });
     const refreshToken = generateRefreshToken({ id: updated.id, type: 'user' });
     await prisma.user.update({ where: { id: updated.id }, data: { refreshToken } });
 
@@ -392,7 +452,15 @@ exports.refreshToken = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Invalid refresh token' });
     }
 
-    const accessToken = generateAccessToken({ id: user.id, role: user.role, type: 'user' });
+    let roleName = user.role || 'MEMBER';
+    if (user.roleId) {
+      const roleRecord = await prisma.role.findUnique({ where: { id: user.roleId } });
+      if (roleRecord) roleName = roleRecord.name;
+    }
+    user.roleName = roleName;
+    user.actions = await getUserActions(roleName, user.roleId);
+
+    const accessToken = generateAccessToken({ id: user.id, role: roleName, type: 'user' });
     const newRefreshToken = generateRefreshToken({ id: user.id, type: 'user' });
     await prisma.user.update({ where: { id: user.id }, data: { refreshToken: newRefreshToken } });
 

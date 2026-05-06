@@ -34,12 +34,31 @@ exports.post_auth_login = async (req, res, next) => {
     }
 
     const displayName = user.name || `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim();
+    
+    // Resolve role from the dynamic roles table
+    const roleName = (user.role || 'ADMIN').toUpperCase();
+    const roleRecord = await prisma.role.findUnique({ where: { name: roleName } });
+    const roleId = roleRecord ? roleRecord.id : null;
+
     const token = generateToken({
       userId: user.id.toString(),
       email: user.email,
-      role: user.role,
+      role: roleName,
+      roleId: roleId,
       name: displayName,
     });
+
+    let actions = [];
+    if (roleName === 'SUPER_ADMIN') {
+      const allActions = await prisma.action.findMany({ where: { isActive: true }, select: { actionKey: true } });
+      actions = allActions.map(a => a.actionKey);
+    } else if (roleId) {
+      const roleActions = await prisma.roleActionMap.findMany({
+        where: { roleId },
+        include: { action: { select: { actionKey: true, isActive: true } } }
+      });
+      actions = roleActions.map(ra => ra.action).filter(a => a.isActive).map(a => a.actionKey);
+    }
 
     // Set HTTP-only cookie
     res.cookie('auth-token', token, {
@@ -57,7 +76,10 @@ exports.post_auth_login = async (req, res, next) => {
           id: user.id,
           name: displayName,
           email: user.email,
-          role: user.role,
+          role: roleName,
+          roleId: roleId,
+          roleName: roleName,
+          actions: actions,
           phone: user.phone,
           avatar: user.profilePhoto || user.avatar,
           status: user.status,

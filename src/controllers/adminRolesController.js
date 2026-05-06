@@ -192,13 +192,20 @@ exports.getActions = async (req, res, next) => {
       ];
     }
 
+    const isPaginated = req.query.paginate !== 'false' && req.query.groupByModule !== 'true';
+
+    const queryArgs = {
+      where,
+      orderBy: { module: 'asc' },
+    };
+
+    if (isPaginated) {
+      queryArgs.skip = skip;
+      queryArgs.take = limit;
+    }
+
     const [actions, total] = await Promise.all([
-      prisma.action.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { module: 'asc' },
-      }),
+      prisma.action.findMany(queryArgs),
       prisma.action.count({ where }),
     ]);
 
@@ -222,7 +229,7 @@ exports.getActions = async (req, res, next) => {
       success: true,
       data: {
         actions,
-        pagination: paginationMeta(total, page, limit),
+        pagination: isPaginated ? paginationMeta(total, page, limit) : { total, pages: 1, page: 1, limit: total },
       },
     });
   } catch (error) {
