@@ -522,6 +522,60 @@ exports.bulkRevokeActions = async (req, res, next) => {
 
 // ─── UTILITY ───
 
+exports.getMyActions = async (req, res, next) => {
+  try {
+    const userRoleName = (req.user.roleName || '').toUpperCase();
+    
+    // If SUPER_ADMIN, return all active actions
+    if (userRoleName === 'SUPER_ADMIN') {
+      const allActions = await prisma.action.findMany({
+        where: { isActive: true },
+        select: { actionKey: true, module: true, description: true }
+      });
+      return res.json({ 
+        success: true, 
+        data: { 
+          role: 'SUPER_ADMIN',
+          isSuperAdmin: true,
+          actions: allActions.map(a => a.actionKey),
+          actionDetails: allActions
+        } 
+      });
+    }
+
+    // For other roles, check mapping based on roleId
+    const roleId = req.user.roleId;
+    if (!roleId) {
+      return res.json({ success: true, data: { role: userRoleName, isSuperAdmin: false, actions: [], actionDetails: [] } });
+    }
+
+    const roleActions = await prisma.roleActionMap.findMany({
+      where: { roleId },
+      include: {
+        action: {
+          select: { actionKey: true, module: true, description: true, isActive: true }
+        }
+      }
+    });
+
+    const activeActions = roleActions
+      .map(ra => ra.action)
+      .filter(a => a.isActive);
+
+    res.json({
+      success: true,
+      data: {
+        role: userRoleName,
+        isSuperAdmin: false,
+        actions: activeActions.map(a => a.actionKey),
+        actionDetails: activeActions
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.checkPermission = async (req, res, next) => {
   try {
     const { roleId, actionKey } = req.query;

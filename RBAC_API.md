@@ -127,6 +127,11 @@ All RBAC endpoints are mounted under `/api/admin/rbac` and require `SUPER_ADMIN`
 
 ### 4. Utility APIs
 
+#### Get My Actions
+* **GET** `/api/admin/rbac/my-actions`
+* **Note**: This is the *only* endpoint under `/api/admin/rbac` that does not require `SUPER_ADMIN`. Any authenticated user can call this to get their own permissions.
+* **Returns**: `{ success: true, data: { role: 'ADMIN', isSuperAdmin: false, actions: ['disasters.create', ...], actionDetails: [...] } }`
+
 #### Check Permission
 * **GET** `/api/admin/rbac/check?roleId=...&actionKey=...`
 * Returns whether a specific role has a specific action, useful for frontend conditional rendering.

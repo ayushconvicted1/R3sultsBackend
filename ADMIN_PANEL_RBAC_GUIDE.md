@@ -78,18 +78,19 @@ axios.interceptors.response.use(
 
 If you want to hide a "Create Disaster" button because the user doesn't have the `disasters.create` permission, you have two options:
 
-**Option 1: The API Check Approach (Lazy Check)**
-Call the utility endpoint before rendering specific high-security sections:
-*   `GET /check?roleId=<user_role_id>&actionKey=disasters.create`
-*   *Returns*: `{ success: true, data: { hasAccess: true/false } }`
-
-**Option 2: The Context Approach (Recommended for UI speed)**
-1.  When the user logs into the admin panel, fetch their full role profile along with their assigned actions: `GET /roles/<user_role_id>`.
-2.  Store the array of assigned `actionKey`s in your React/Vue global state (e.g., Redux, Context API, Zustand).
+**Option 1: The Context Approach (Recommended for UI speed)**
+1.  When the user logs into the admin panel, fetch their assigned actions using the dedicated endpoint: `GET /my-actions`.
+    *   *Returns*: `{ success: true, data: { role: 'ADMIN', isSuperAdmin: false, actions: ['disasters.create', ...], actionDetails: [...] } }`
+2.  Store the array of assigned `actionKey`s (from `data.actions`) in your React/Vue global state (e.g., Redux, Context API, Zustand).
 3.  Create a wrapper component (e.g., `<RequirePermission action="disasters.create">`) that checks if the action key exists in the global array before rendering its children.
 
 > [!IMPORTANT]  
-> If the user's role is `SUPER_ADMIN`, your frontend logic should automatically assume `hasAccess = true` for everything without checking the array, mimicking the backend's god-mode bypass.
+> If the `isSuperAdmin` flag in the response is `true`, your frontend logic should automatically assume `hasAccess = true` for everything without checking the array, mimicking the backend's god-mode bypass.
+
+**Option 2: The API Check Approach (Lazy Check)**
+Call the utility endpoint before rendering specific high-security sections:
+*   `GET /check?roleId=<user_role_id>&actionKey=disasters.create`
+*   *Returns*: `{ success: true, data: { hasAccess: true/false } }`
 
 ### C. Updating the User Login Response
 

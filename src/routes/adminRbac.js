@@ -2,8 +2,13 @@ const router = require('express').Router();
 const { authenticate, requireRole } = require('../middleware/auth');
 const ctrl = require('../controllers/adminRolesController');
 
-// All RBAC routes require authentication and SUPER_ADMIN role
+// All RBAC routes require authentication
 router.use(authenticate);
+
+// Endpoint for the logged-in user to fetch their own assigned actions
+router.get('/my-actions', ctrl.getMyActions);
+
+// The rest of the RBAC management routes require SUPER_ADMIN
 router.use(requireRole('SUPER_ADMIN'));
 
 // ─── ROLES ───
