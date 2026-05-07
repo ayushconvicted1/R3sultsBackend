@@ -123,7 +123,16 @@ exports.post_ops_users = async (req, res, next) => {
     }
 
     const body = req.body;
-    const role = body.role === 'super_admin' ? 'super_admin' : 'admin';
+    let role = 'admin'; // Fallback
+    if (body.role) {
+      const roleRecord = await prisma.role.findFirst({
+        where: { OR: [{ id: body.role }, { name: body.role.toUpperCase() }] }
+      });
+      if (!roleRecord) {
+        return res.status(400).json({ success: false, error: 'Invalid role provided' });
+      }
+      role = roleRecord.name;
+    }
 
     // Check if email already exists
     const existing = await prisma.opsUser.findFirst({
@@ -215,7 +224,8 @@ exports.put_ops_users = async (req, res, next) => {
       return res.status(404).json({ success: false, error: 'User not found' });
     }
 
-    if (existing.role === 'SUPER_ADMIN' && tokenPayload.role !== 'SUPER_ADMIN') {
+    const currentUserRole = (tokenPayload.role || '').toUpperCase();
+    if (existing.role === 'SUPER_ADMIN' && currentUserRole !== 'SUPER_ADMIN') {
       return res.status(403).json({ success: false, error: 'Cannot edit super admin' });
     }
 
@@ -259,8 +269,18 @@ exports.put_ops_users = async (req, res, next) => {
       },
     };
 
-    if (body.role && tokenPayload.role === 'super_admin') {
-      updateData.role = body.role === 'super_admin' ? 'super_admin' : 'admin';
+    if (body.role) {
+      const currentUserRole = (tokenPayload.role || '').toUpperCase();
+      if (currentUserRole !== 'SUPER_ADMIN') {
+        return res.status(403).json({ success: false, error: 'Only SUPER_ADMIN can change user roles' });
+      }
+      const roleRecord = await prisma.role.findFirst({
+        where: { OR: [{ id: body.role }, { name: body.role.toUpperCase() }] }
+      });
+      if (!roleRecord) {
+        return res.status(400).json({ success: false, error: 'Invalid role provided' });
+      }
+      updateData.role = roleRecord.name;
     }
 
     if (body.password && body.password.length >= 6) {
