@@ -224,7 +224,7 @@ exports.put_ops_users = async (req, res, next) => {
       return res.status(404).json({ success: false, error: 'User not found' });
     }
 
-    const currentUserRole = (tokenPayload.role || '').toUpperCase();
+    const currentUserRole = (tokenPayload.roleName || tokenPayload.role || '').toUpperCase();
     if (existing.role === 'SUPER_ADMIN' && currentUserRole !== 'SUPER_ADMIN') {
       return res.status(403).json({ success: false, error: 'Cannot edit super admin' });
     }
@@ -270,7 +270,7 @@ exports.put_ops_users = async (req, res, next) => {
     };
 
     if (body.role) {
-      const currentUserRole = (tokenPayload.role || '').toUpperCase();
+      const currentUserRole = (tokenPayload.roleName || tokenPayload.role || '').toUpperCase();
       if (currentUserRole !== 'SUPER_ADMIN') {
         return res.status(403).json({ success: false, error: 'Only SUPER_ADMIN can change user roles' });
       }
@@ -329,7 +329,7 @@ exports.delete_ops_users = async (req, res, next) => {
     if (user.role === 'super_admin') {
       return res.status(403).json({ success: false, error: 'Cannot delete super admin' });
     }
-    if (user.id === tokenPayload.userId) {
+    if (user.id === tokenPayload.id || user.id === tokenPayload.userId) {
       return res.status(400).json({ success: false, error: 'Cannot delete your own account' });
     }
 
@@ -349,7 +349,8 @@ exports.get_ops_users_me = async (req, res, next) => {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
-    const user = await prisma.opsUser.findUnique({ where: { id: tokenPayload.userId } });
+    const userId = tokenPayload.id || tokenPayload.userId;
+    const user = await prisma.opsUser.findUnique({ where: { id: userId } });
     if (!user) {
       return res.status(404).json({ success: false, error: 'User not found' });
     }
@@ -377,7 +378,8 @@ exports.post_ops_users_change_password = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'New password must be at least 6 characters' });
     }
 
-    const user = await prisma.opsUser.findUnique({ where: { id: tokenPayload.userId } });
+    const userId = tokenPayload.id || tokenPayload.userId;
+    const user = await prisma.opsUser.findUnique({ where: { id: userId } });
     if (!user) {
       return res.status(404).json({ success: false, error: 'User not found' });
     }
@@ -389,7 +391,7 @@ exports.post_ops_users_change_password = async (req, res, next) => {
 
     const hashedNew = await bcrypt.hash(newPassword, 12);
     await prisma.opsUser.update({
-      where: { id: tokenPayload.userId },
+      where: { id: userId },
       data: { password: hashedNew },
     });
 
