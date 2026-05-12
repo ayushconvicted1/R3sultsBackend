@@ -3,6 +3,10 @@ const prisma = require('../lib/prisma');
 const { generateAccessToken, generateRefreshToken, verifyToken } = require('../utils/token');
 const { generateOTP, isOTPExpired, sendOtpViaGHL } = require('../utils/otp');
 
+// Dummy credentials for App Store / Play Store review
+const PLAY_STORE_TEST_PHONE = '+15551234567';
+const PLAY_STORE_TEST_OTP = '123456';
+
 const sanitizeUser = (user) => {
   const { passwordHash, otpCode, otpExpiresAt, otpAttempts, refreshToken, ...safe } = user;
   return safe;
@@ -59,8 +63,11 @@ exports.register = async (req, res, next) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
-    const otp = generateOTP();
-    const otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    const isTestAccount = phoneNumber === PLAY_STORE_TEST_PHONE;
+    const otp = isTestAccount ? PLAY_STORE_TEST_OTP : generateOTP();
+    const otpExpiresAt = isTestAccount 
+      ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) 
+      : new Date(Date.now() + 5 * 60 * 1000);
 
     const autoUsername = username || await generateUniqueUsername(fullName);
 
@@ -290,8 +297,11 @@ exports.appleSignIn = async (req, res, next) => {
 exports.sendOTP = async (req, res, next) => {
   try {
     const { phoneNumber } = req.body;
-    const otp = generateOTP();
-    const otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    const isTestAccount = phoneNumber === PLAY_STORE_TEST_PHONE;
+    const otp = isTestAccount ? PLAY_STORE_TEST_OTP : generateOTP();
+    const otpExpiresAt = isTestAccount 
+      ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) 
+      : new Date(Date.now() + 5 * 60 * 1000);
 
     let user = await prisma.user.findUnique({ where: { phoneNumber } });
     if (user) {
@@ -313,7 +323,9 @@ exports.sendOTP = async (req, res, next) => {
       });
     }
 
-    await sendOtpViaGHL(phoneNumber, otp);
+    if (!isTestAccount) {
+      await sendOtpViaGHL(phoneNumber, otp);
+    }
 
     res.json({
       success: true,
@@ -334,15 +346,21 @@ exports.verifyOTP = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    if (user.otpAttempts >= 5) {
+    const isTestAccount = phoneNumber === PLAY_STORE_TEST_PHONE;
+
+    if (user.otpAttempts >= 5 && !isTestAccount) {
       return res.status(429).json({ success: false, message: 'Too many OTP attempts. Please request a new OTP.' });
     }
 
-    if (!user.otpCode || isOTPExpired(user.otpExpiresAt)) {
+    if (!isTestAccount && (!user.otpCode || isOTPExpired(user.otpExpiresAt))) {
       return res.status(400).json({ success: false, message: 'OTP expired. Please request a new one.' });
     }
 
-    if (user.otpCode !== otp) {
+    if (isTestAccount) {
+      if (otp !== PLAY_STORE_TEST_OTP) {
+        return res.status(400).json({ success: false, message: 'Invalid OTP' });
+      }
+    } else if (user.otpCode !== otp) {
       await prisma.user.update({
         where: { id: user.id },
         data: { otpAttempts: { increment: 1 } },
@@ -389,14 +407,20 @@ exports.forgotPassword = async (req, res, next) => {
     const { phoneNumber } = req.body;
     const user = await prisma.user.findUnique({ where: { phoneNumber } });
 
+    const isTestAccount = phoneNumber === PLAY_STORE_TEST_PHONE;
+
     if (user) {
-      const otp = generateOTP();
-      const otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
+      const otp = isTestAccount ? PLAY_STORE_TEST_OTP : generateOTP();
+      const otpExpiresAt = isTestAccount 
+        ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) 
+        : new Date(Date.now() + 5 * 60 * 1000);
       await prisma.user.update({
         where: { id: user.id },
         data: { otpCode: otp, otpExpiresAt, otpAttempts: 0 },
       });
-      await sendOtpViaGHL(phoneNumber, otp);
+      if (!isTestAccount) {
+        await sendOtpViaGHL(phoneNumber, otp);
+      }
     }
 
     res.json({
@@ -413,13 +437,19 @@ exports.resetPassword = async (req, res, next) => {
   try {
     const { phoneNumber, otp, newPassword } = req.body;
 
+    const isTestAccount = phoneNumber === PLAY_STORE_TEST_PHONE;
+
     const user = await prisma.user.findUnique({ where: { phoneNumber } });
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    if (!user.otpCode || isOTPExpired(user.otpExpiresAt) || user.otpCode !== otp) {
+    if (!isTestAccount && (!user.otpCode || isOTPExpired(user.otpExpiresAt) || user.otpCode !== otp)) {
       return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+    }
+
+    if (isTestAccount && otp !== PLAY_STORE_TEST_OTP) {
+      return res.status(400).json({ success: false, message: 'Invalid OTP' });
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 12);

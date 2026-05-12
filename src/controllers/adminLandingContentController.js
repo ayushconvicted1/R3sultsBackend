@@ -1,5 +1,5 @@
 const prisma = require('../lib/prisma');
-const { uploadToCloudinary, cloudinary } = require('../middleware/upload');
+const { uploadToCloudinary, deleteFromCloudinary, extractPublicId, cloudinary } = require('../middleware/upload');
 const seedData = require('../utils/landingContentSeed');
 
 // ─── Allowed pages ───
@@ -305,7 +305,7 @@ exports.deleteSection = async (req, res, next) => {
  */
 exports.uploadMedia = async (req, res, next) => {
   try {
-    const { page, section, key } = req.body;
+    const { page, section, key, oldUrl } = req.body;
 
     if (!page || !section) {
       return res.status(400).json({ success: false, message: 'page and section are required' });
@@ -317,10 +317,35 @@ exports.uploadMedia = async (req, res, next) => {
     const isVideo = req.file.mimetype.startsWith('video/');
     const resourceType = isVideo ? 'video' : 'image';
 
-    const result = await uploadToCloudinary(req.file.buffer, {
+    const uploadOptions = {
       folder: `r3sults/landing/${page}/${section}`,
       resource_type: resourceType,
-    });
+    };
+
+    if (isVideo) {
+      uploadOptions.transformation = [
+        { width: 1080, crop: 'limit' },
+        { quality: 'auto' }
+      ];
+    } else {
+      uploadOptions.transformation = [
+        { width: 1920, crop: 'limit' },
+        { quality: 'auto:good' },
+        { fetch_format: 'auto' }
+      ];
+    }
+
+    const result = await uploadToCloudinary(req.file.buffer, uploadOptions);
+
+    if (oldUrl) {
+      const oldPublicId = extractPublicId(oldUrl);
+      if (oldPublicId) {
+        const oldResourceType = oldUrl.includes('/video/') ? 'video' : 'image';
+        deleteFromCloudinary(oldPublicId, oldResourceType).catch((err) => {
+          console.error(`Failed to delete old Cloudinary media: ${oldPublicId}`, err);
+        });
+      }
+    }
 
     res.json({
       success: true,

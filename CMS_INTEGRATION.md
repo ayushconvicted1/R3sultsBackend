@@ -21,7 +21,7 @@ The CMS stores landing page content in a `landing_content` table. Each row repre
 | Page | Sections |
 |------|----------|
 | `shared` | `footer`, `forms` |
-| `home` | `hero`, `delayedEmergencyResponse`, `buildingSection`, `lifelineSection`, `comingSoonSection`, `inActionVideos`, `testimonialsSection`, `liveImpactUpdates`, `guidesResourcesSection`, `communitySection` |
+| `home` | `hero`, `delayedEmergencyResponse`, `buildingSection`, `lifelineSection`, `comingSoonSection`, `inActionVideos`, `testimonialsSection`, `liveImpactUpdates`, `instagramReels`, `guidesResourcesSection`, `communitySection` |
 | `about` | `hero`, `visionMissionSection`, `teamLeadershipSection`, `teamAdditionalSection` |
 | `contact` | `hero`, `contactSection`, `quoteSection` |
 
@@ -290,7 +290,7 @@ Save multiple sections in one call.
 }
 ```
 
-### 11. Upload Media
+### 11. Upload Media (Images & Videos/Reels)
 
 ```
 POST /api/admin/landing-content/upload
@@ -299,9 +299,10 @@ Content-Type: multipart/form-data
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `file` | file | ✅ | Image (jpeg, png, webp, gif) or video (mp4, mov) |
+| `file` | file | ✅ | Image (jpeg, png, webp, gif) or video/reel (mp4, mov) |
 | `page` | text | ✅ | Target page |
 | `section` | text | ✅ | Target section |
+| `oldUrl` | text | ❌ | URL of the previous media to delete from Cloudinary |
 | `key` | text | ❌ | Dot-path for the content field (e.g. `backgroundVideo.src`) |
 
 **Response:**

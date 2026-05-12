@@ -45,4 +45,28 @@ const uploadToCloudinary = (buffer, options = {}) => {
   });
 };
 
-module.exports = { upload, uploadToCloudinary, cloudinary };
+const extractPublicId = (url) => {
+  if (!url || !url.includes('cloudinary.com')) return null;
+  try {
+    const parts = url.split('/');
+    const uploadIndex = parts.indexOf('upload');
+    if (uploadIndex === -1) return null;
+    const hasVersion = parts[uploadIndex + 1].startsWith('v');
+    const pathParts = parts.slice(uploadIndex + (hasVersion ? 2 : 1));
+    const publicIdWithExt = pathParts.join('/');
+    return publicIdWithExt.substring(0, publicIdWithExt.lastIndexOf('.')) || publicIdWithExt;
+  } catch (e) {
+    return null;
+  }
+};
+
+const deleteFromCloudinary = (publicId, resourceType = 'image') => {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.destroy(publicId, { resource_type: resourceType }, (error, result) => {
+      if (error) reject(error);
+      else resolve(result);
+    });
+  });
+};
+
+module.exports = { upload, uploadToCloudinary, deleteFromCloudinary, extractPublicId, cloudinary };
