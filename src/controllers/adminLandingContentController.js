@@ -18,6 +18,11 @@ const VALID_PAGES = ['home', 'about', 'contact', 'shared'];
  */
 exports.getPageContent = async (req, res, next) => {
   try {
+    // Disable caching to ensure frontend always gets fresh CMS data
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
     const { page, section } = req.query;
 
     if (!page) {
@@ -71,6 +76,11 @@ exports.getPageContent = async (req, res, next) => {
  */
 exports.getSectionContent = async (req, res, next) => {
   try {
+    // Disable caching
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
     const { page, section } = req.params;
 
     const item = await prisma.landingContent.findUnique({
@@ -106,6 +116,11 @@ exports.getSectionContent = async (req, res, next) => {
  */
 exports.getFullContent = async (_req, res, next) => {
   try {
+    // Disable caching for the full content endpoint
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
     const items = await prisma.landingContent.findMany({
       orderBy: [{ page: 'asc' }, { sortOrder: 'asc' }],
     });
