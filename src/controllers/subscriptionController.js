@@ -45,7 +45,7 @@ exports.getPlans = async (req, res, next) => {
       },
       {
         id: 'elite', name: 'Elite', tier: 'ELITE',
-        priceMonthly: '$495', priceCents: 49500, memberLimit: 9999,
+        priceMonthly: '$49.99', priceCents: 4999, memberLimit: 9999,
         tagline: 'Dedicated concierge support from first alert through full rebuild.',
         productIds: { ios: 'com.r3sults.elite.monthly', android: 'com.r3sults.elite.monthly' },
         features: iap.getPlanFeatures('ELITE'),

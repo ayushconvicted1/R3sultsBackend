@@ -12,6 +12,24 @@ const sanitizeUser = (user) => {
   return safe;
 };
 
+const ensureTestUserSubscription = async (userId) => {
+  await prisma.subscription.upsert({
+    where: { userId },
+    update: {
+      plan: 'ELITE',
+      status: 'active',
+      currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+    },
+    create: {
+      userId,
+      plan: 'ELITE',
+      status: 'active',
+      currentPeriodStart: new Date(),
+      currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+    }
+  });
+};
+
 const getDefaultRoleId = async () => {
   const memberRole = await prisma.role.findUnique({ where: { name: 'MEMBER' } });
   return memberRole ? memberRole.id : null;
@@ -142,6 +160,10 @@ exports.login = async (req, res, next) => {
       where: { id: user.id },
       data: { refreshToken, lastLoginAt: new Date() },
     });
+
+    if (user.phoneNumber === PLAY_STORE_TEST_PHONE) {
+      await ensureTestUserSubscription(user.id);
+    }
 
     res.json({
       success: true,
@@ -391,6 +413,10 @@ exports.verifyOTP = async (req, res, next) => {
     const accessToken = generateAccessToken({ id: updated.id, role: roleName, type: 'user' });
     const refreshToken = generateRefreshToken({ id: updated.id, type: 'user' });
     await prisma.user.update({ where: { id: updated.id }, data: { refreshToken } });
+
+    if (updated.phoneNumber === PLAY_STORE_TEST_PHONE) {
+      await ensureTestUserSubscription(updated.id);
+    }
 
     res.json({
       success: true,
