@@ -32,7 +32,7 @@ exports.getPlans = async (req, res, next) => {
       },
       {
         id: 'pro', name: 'Pro', tier: 'PRO', isPopular: true,
-        priceMonthly: '$10.99', priceCents: 1099, memberLimit: 10,
+        priceMonthly: '$12.99', priceCents: 1299, memberLimit: 10,
         tagline: 'Full recovery toolkit with discounted supplies & priority support.',
         productIds: { ios: 'com.r3sults.pro.monthly', android: 'com.r3sults.pro.monthly' },
         features: iap.getPlanFeatures('PRO'),
@@ -281,7 +281,7 @@ exports.createSquareCheckout = async (req, res, next) => {
     }
 
     // Determine price in cents (hardcoded for simplicity, should match getPlans)
-    const prices = { PLUS: 499, PRO: 1099, ELITE: 49500 };
+    const prices = { PLUS: 499, PRO: 1299, ELITE: 49500 };
     const amountCents = prices[plan.toUpperCase()];
 
     const checkoutUrl = await squareService.createSubscriptionCheckout(req.user.id, plan.toUpperCase(), amountCents);
