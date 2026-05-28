@@ -252,8 +252,14 @@ exports.appleSignIn = async (req, res, next) => {
     const appleSignin = require('apple-signin-auth');
     let payload;
     try {
+      // Accept both the iOS app Bundle ID and the Services ID (for web)
+      // Native iOS tokens have aud = Bundle ID, not the Services ID
+      const validAudiences = [
+        process.env.APPLE_CLIENT_ID,
+        process.env.APPLE_IAP_BUNDLE_ID,
+      ].filter(Boolean);
       payload = await appleSignin.verifyIdToken(identityToken, {
-        audience: process.env.APPLE_CLIENT_ID,
+        audience: validAudiences.length === 1 ? validAudiences[0] : validAudiences,
         ignoreExpiration: false,
       });
     } catch (verifyError) {
@@ -261,9 +267,14 @@ exports.appleSignIn = async (req, res, next) => {
     }
 
     const { sub: providerId, email } = payload;
-    const fullName = appleUser?.fullName
-      ? `${appleUser.fullName.givenName || ''} ${appleUser.fullName.familyName || ''}`.trim()
-      : null;
+    // Handle both backend shape { fullName: { givenName, familyName } }
+    // and frontend shape { name: { firstName, lastName } }
+    let fullName = null;
+    if (appleUser?.fullName) {
+      fullName = `${appleUser.fullName.givenName || ''} ${appleUser.fullName.familyName || ''}`.trim() || null;
+    } else if (appleUser?.name) {
+      fullName = `${appleUser.name.firstName || ''} ${appleUser.name.lastName || ''}`.trim() || null;
+    }
 
     let user = await prisma.user.findFirst({
       where: { OR: [{ providerId, authProvider: 'apple' }, ...(email ? [{ email }] : [])] },
