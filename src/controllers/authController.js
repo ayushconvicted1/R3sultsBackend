@@ -251,18 +251,20 @@ exports.appleSignIn = async (req, res, next) => {
 
     const appleSignin = require('apple-signin-auth');
     let payload;
+    // Accept both the iOS app Bundle ID and the Services ID (for web)
+    // Native iOS tokens have aud = Bundle ID, not the Services ID
+    const validAudiences = [
+      process.env.APPLE_CLIENT_ID,
+      process.env.APPLE_IAP_BUNDLE_ID,
+    ].filter(Boolean);
     try {
-      // Accept both the iOS app Bundle ID and the Services ID (for web)
-      // Native iOS tokens have aud = Bundle ID, not the Services ID
-      const validAudiences = [
-        process.env.APPLE_CLIENT_ID,
-        process.env.APPLE_IAP_BUNDLE_ID,
-      ].filter(Boolean);
       payload = await appleSignin.verifyIdToken(identityToken, {
         audience: validAudiences.length === 1 ? validAudiences[0] : validAudiences,
         ignoreExpiration: false,
       });
     } catch (verifyError) {
+      console.error('Apple token verification failed:', verifyError?.message || verifyError);
+      console.error('Expected audiences:', validAudiences);
       return res.status(401).json({ success: false, message: 'Invalid Apple identity token' });
     }
 
