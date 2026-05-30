@@ -301,16 +301,28 @@ exports.webhookSquare = async (req, res, next) => {
   // In a real app, verify Square webhook signature here
   try {
     const event = req.body;
+    console.log('Received Square webhook:', event.type);
     
-    if (event.type === 'payment.updated' || event.type === 'invoice.payment_made') {
-      // In this boilerplate, if you use createPaymentLink, Square might send a payment.created event.
-      // We would parse the referenceId to get userId and plan
-      console.log('Received Square payment webhook', event);
-      // const referenceId = event.data.object.payment.reference_id;
-      // if (referenceId) {
-      //   const [userId, plan] = referenceId.split('|');
-      //   await iap.activateSubscription(userId, { plan, platform: 'android_web' });
-      // }
+    if (
+      event.type === 'payment.created' || 
+      event.type === 'payment.updated' ||
+      event.type === 'invoice.payment_made'
+    ) {
+      const paymentObj = event.data?.object?.payment;
+      if (paymentObj && (paymentObj.status === 'COMPLETED' || paymentObj.status === 'APPROVED')) {
+        const referenceId = paymentObj.reference_id;
+        if (referenceId) {
+          const [userId, plan] = referenceId.split('|');
+          if (userId && plan) {
+            console.log(`[Square Webhook] Activating plan ${plan} for user ${userId}`);
+            await iap.activateSubscription(userId, { 
+              plan: plan.toUpperCase(), 
+              platform: 'android_web',
+              transactionData: {} 
+            });
+          }
+        }
+      }
     }
     
     res.json({ received: true });

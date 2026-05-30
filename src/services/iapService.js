@@ -550,6 +550,10 @@ async function activateSubscription(userId, { plan, platform, transactionData })
     data.googleProductId = transactionData.productId;
     data.currentPeriodEnd = transactionData.expiryTime;
     data.expiresAt = transactionData.expiryTime;
+  } else if (platform === 'android_web') {
+    // Square Web redirect billing cycle
+    data.currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+    data.expiresAt = data.currentPeriodEnd;
   }
 
   // Upsert: create if not exists, update if exists
