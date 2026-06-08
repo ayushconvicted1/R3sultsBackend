@@ -114,10 +114,18 @@ const PLAN_FEATURES = {
 
 // Map store product IDs to plan tiers
 const PRODUCT_ID_TO_PLAN = {
+  // iOS (App Store Connect)
+  'com.r3sults.r3app.plus.monthly': 'PLUS',
+  'com.r3sults.r3app.pro.monthly': 'PRO',
+  'com.r3sults.r3app.elite.monthly': 'ELITE',
+  // Android (Google Play) — keep old IDs
   'com.r3sults.plus.monthly': 'PLUS',
   'com.r3sults.pro.monthly': 'PRO',
   'com.r3sults.elite.monthly': 'ELITE',
   // Annual (if added later)
+  'com.r3sults.r3app.plus.yearly': 'PLUS',
+  'com.r3sults.r3app.pro.yearly': 'PRO',
+  'com.r3sults.r3app.elite.yearly': 'ELITE',
   'com.r3sults.plus.yearly': 'PLUS',
   'com.r3sults.pro.yearly': 'PRO',
   'com.r3sults.elite.yearly': 'ELITE',

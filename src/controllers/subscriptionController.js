@@ -21,7 +21,7 @@ exports.getPlans = async (req, res, next) => {
         id: 'plus', name: 'Plus', tier: 'PLUS',
         priceMonthly: '$4.99', priceCents: 499, memberLimit: 5,
         tagline: 'Live coordination tools plus preparedness resources.',
-        productIds: { ios: 'com.r3sults.plus.monthly', android: 'com.r3sults.plus.monthly' },
+        productIds: { ios: 'com.r3sults.r3app.plus.monthly', android: 'com.r3sults.plus.monthly' },
         features: iap.getPlanFeatures('PLUS'),
         featureList: [
           'Shelter finder — full map & details', 'Educational disaster library',
@@ -34,7 +34,7 @@ exports.getPlans = async (req, res, next) => {
         id: 'pro', name: 'Pro', tier: 'PRO', isPopular: true,
         priceMonthly: '$12.99', priceCents: 1299, memberLimit: 10,
         tagline: 'Full recovery toolkit with discounted supplies & priority support.',
-        productIds: { ios: 'com.r3sults.pro.monthly', android: 'com.r3sults.pro.monthly' },
+        productIds: { ios: 'com.r3sults.r3app.pro.monthly', android: 'com.r3sults.pro.monthly' },
         features: iap.getPlanFeatures('PRO'),
         featureList: [
           'Wholesale-discounted supply pricing', 'Discounted insurance quote access',
@@ -47,7 +47,7 @@ exports.getPlans = async (req, res, next) => {
         id: 'elite', name: 'Elite', tier: 'ELITE',
         priceMonthly: '$49.99', priceCents: 4999, memberLimit: 9999,
         tagline: 'Dedicated concierge support from first alert through full rebuild.',
-        productIds: { ios: 'com.r3sults.elite.monthly', android: 'com.r3sults.elite.monthly' },
+        productIds: { ios: 'com.r3sults.r3app.elite.monthly', android: 'com.r3sults.elite.monthly' },
         features: iap.getPlanFeatures('ELITE'),
         featureList: [
           '24/7 dedicated concierge advisor', 'End-to-end insurance claim support',
