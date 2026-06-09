@@ -164,13 +164,13 @@ function isPlanAtLeast(currentPlan, requiredPlan) {
  */
 async function verifyAppleTransaction(transactionId) {
   try {
-    const { AppStoreServerAPIClient, Environment } = require('app-store-server-api');
+    const { AppStoreServerAPI, Environment } = require('app-store-server-api');
     
     const environment = process.env.APPLE_IAP_ENVIRONMENT === 'production'
-      ? Environment.PRODUCTION
-      : Environment.SANDBOX;
+      ? Environment.Production
+      : Environment.Sandbox;
 
-    const client = new AppStoreServerAPIClient(
+    const client = new AppStoreServerAPI(
       process.env.APPLE_IAP_PRIVATE_KEY,
       process.env.APPLE_IAP_KEY_ID,
       process.env.APPLE_IAP_ISSUER_ID,
@@ -185,9 +185,9 @@ async function verifyAppleTransaction(transactionId) {
       throw new Error('Invalid transaction response from Apple');
     }
 
-    // Decode the signed transaction (JWS)
-    const { decodeJWS } = require('app-store-server-api');
-    const decoded = await decodeJWS(transactionInfo.signedTransactionInfo);
+    // Decode the signed transaction
+    const { decodeTransaction } = require('app-store-server-api');
+    const decoded = await decodeTransaction(transactionInfo.signedTransactionInfo);
 
     return {
       valid: true,
@@ -211,13 +211,13 @@ async function verifyAppleTransaction(transactionId) {
  */
 async function getAppleSubscriptionStatus(originalTransactionId) {
   try {
-    const { AppStoreServerAPIClient, Environment } = require('app-store-server-api');
+    const { AppStoreServerAPI, Environment } = require('app-store-server-api');
     
     const environment = process.env.APPLE_IAP_ENVIRONMENT === 'production'
-      ? Environment.PRODUCTION
-      : Environment.SANDBOX;
+      ? Environment.Production
+      : Environment.Sandbox;
 
-    const client = new AppStoreServerAPIClient(
+    const client = new AppStoreServerAPI(
       process.env.APPLE_IAP_PRIVATE_KEY,
       process.env.APPLE_IAP_KEY_ID,
       process.env.APPLE_IAP_ISSUER_ID,
@@ -225,7 +225,7 @@ async function getAppleSubscriptionStatus(originalTransactionId) {
       environment,
     );
 
-    const statusResponse = await client.getAllSubscriptionStatuses(originalTransactionId);
+    const statusResponse = await client.getSubscriptionStatuses(originalTransactionId);
     return statusResponse;
   } catch (error) {
     console.error('Failed to get Apple subscription status:', error);
@@ -239,15 +239,15 @@ async function getAppleSubscriptionStatus(originalTransactionId) {
  */
 async function handleAppleNotification(signedPayload) {
   try {
-    const { decodeJWS } = require('app-store-server-api');
-    const notification = await decodeJWS(signedPayload);
+    const { decodeNotificationPayload, decodeTransaction, decodeRenewalInfo } = require('app-store-server-api');
+    const notification = await decodeNotificationPayload(signedPayload);
 
     const { notificationType, subtype, data } = notification;
     const transactionInfo = data?.signedTransactionInfo
-      ? await decodeJWS(data.signedTransactionInfo)
+      ? await decodeTransaction(data.signedTransactionInfo)
       : null;
     const renewalInfo = data?.signedRenewalInfo
-      ? await decodeJWS(data.signedRenewalInfo)
+      ? await decodeRenewalInfo(data.signedRenewalInfo)
       : null;
 
     if (!transactionInfo) {
