@@ -438,6 +438,17 @@ const seedData = [
       quote: '"Safety should depend on dissaster preparedness!"',
     },
   },
+  {
+    page: 'theme',
+    section: 'fonts',
+    sortOrder: 0,
+    content: {
+      headingFont: "Geist",
+      bodyFont: "Plus Jakarta Sans",
+      headingFontUrl: "https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&display=swap",
+      bodyFontUrl: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    }
+  }
 ];
 
 module.exports = seedData;

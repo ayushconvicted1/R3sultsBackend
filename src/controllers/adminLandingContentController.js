@@ -3,7 +3,7 @@ const { uploadToCloudinary, deleteFromCloudinary, extractPublicId, cloudinary } 
 const seedData = require('../utils/landingContentSeed');
 
 // ─── Allowed pages ───
-const VALID_PAGES = ['home', 'about', 'contact', 'shared'];
+const VALID_PAGES = ['home', 'about', 'contact', 'shared', 'theme'];
 
 // ═══════════════════════════════════════════════════════════
 // PUBLIC + ADMIN: Read endpoints
@@ -127,8 +127,13 @@ exports.getFullContent = async (_req, res, next) => {
 
     const result = {};
     for (const item of items) {
-      if (!result[item.page]) result[item.page] = {};
-      result[item.page][item.section] = item.content;
+      if (item.page === 'theme') {
+        if (!result.theme) result.theme = {};
+        Object.assign(result.theme, item.content);
+      } else {
+        if (!result[item.page]) result[item.page] = {};
+        result[item.page][item.section] = item.content;
+      }
     }
 
     res.json({ success: true, data: result });
