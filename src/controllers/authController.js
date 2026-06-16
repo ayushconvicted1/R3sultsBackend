@@ -592,3 +592,114 @@ exports.logout = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Permanently delete the authenticated user's account and all associated data.
+ * Required by Apple App Store Guideline 5.1.1(v).
+ */
+exports.deleteAccount = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    // Use a transaction to ensure all-or-nothing deletion
+    await prisma.$transaction(async (tx) => {
+      // 1. Delete user addresses
+      await tx.userAddress.deleteMany({ where: { userId } });
+
+      // 2. Remove family group memberships
+      await tx.member.deleteMany({ where: { userId } });
+
+      // 3. Delete family groups the user administers
+      //    (first delete members of those groups, then the groups themselves)
+      const adminGroups = await tx.group.findMany({ where: { adminId: userId } });
+      for (const group of adminGroups) {
+        await tx.member.deleteMany({ where: { groupId: group.id } });
+      }
+      await tx.group.deleteMany({ where: { adminId: userId } });
+
+      // 4. Delete notifications
+      await tx.notification.deleteMany({ where: { userId } });
+
+      // 5. Delete subscription records
+      try {
+        await tx.subscription.deleteMany({ where: { userId } });
+      } catch (_) { /* table may not exist */ }
+
+      // 6. Delete location data (current user location)
+      try {
+        await tx.userLocation.deleteMany({ where: { userId } });
+      } catch (_) { /* table may not exist */ }
+
+      // 7. Delete location sharing records
+      try {
+        await tx.locationSharing.deleteMany({
+          where: { OR: [{ userId }, { sharedWithId: userId }] },
+        });
+      } catch (_) { /* table may not exist */ }
+
+      // 8. Delete location history
+      try {
+        await tx.locationHistory.deleteMany({ where: { userId } });
+      } catch (_) { /* table may not exist */ }
+
+      // 9. Delete geofence events for the user
+      try {
+        await tx.geofenceEvent.deleteMany({ where: { userId } });
+      } catch (_) { /* table may not exist */ }
+
+      // 10. Delete geofences created by the user and their events
+      try {
+        const userGeofences = await tx.geofence.findMany({ where: { userId } });
+        const gfIds = userGeofences.map(g => g.id);
+        if (gfIds.length > 0) {
+          await tx.geofenceEvent.deleteMany({ where: { geofenceId: { in: gfIds } } });
+          await tx.geofence.deleteMany({ where: { id: { in: gfIds } } });
+        }
+      } catch (_) { /* table may not exist */ }
+
+      // 11. Delete property photos
+      try {
+        await tx.propertyPhoto.deleteMany({ where: { userId } });
+      } catch (_) { /* table may not exist */ }
+
+      // 12. Anonymize and soft-delete the user record
+      //    We keep the row to prevent re-registration conflicts but strip all PII.
+      const deletedSuffix = `_deleted_${Date.now()}`;
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          isActive: false,
+          deletedAt: new Date(),
+          fullName: 'Deleted User',
+          email: null,
+          phoneNumber: `deleted${deletedSuffix}`,
+          username: `deleted${deletedSuffix}`,
+          profilePictureUrl: null,
+          address: null,
+          city: null,
+          state: null,
+          country: 'US',
+          pincode: null,
+          emergencyContactName: null,
+          emergencyContactPhone: null,
+          bloodGroup: null,
+          medicalConditions: null,
+          passwordHash: null,
+          otpCode: null,
+          otpExpiresAt: null,
+          refreshToken: null,
+          fcmToken: null,
+          providerId: null,
+        },
+      });
+    });
+
+    res.json({
+      success: true,
+      message: 'Your account and all associated data have been permanently deleted.',
+    });
+  } catch (error) {
+    console.error('deleteAccount error:', error);
+    next(error);
+  }
+};

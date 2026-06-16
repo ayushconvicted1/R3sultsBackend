@@ -271,4 +271,17 @@ router.post('/update-phone', authenticate, validate([
  */
 router.post('/logout', authenticate, auth.logout);
 
+/**
+ * @swagger
+ * /auth/delete-account:
+ *   delete:
+ *     summary: Permanently delete user account and all associated data
+ *     tags: [Auth]
+ *     security: [{ BearerAuth: [] }]
+ *     responses:
+ *       200: { description: Account deleted successfully }
+ *       401: { description: Unauthorized }
+ */
+router.delete('/delete-account', authenticate, auth.deleteAccount);
+
 module.exports = router;

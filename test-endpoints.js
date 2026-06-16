@@ -291,8 +291,8 @@ async function main() {
 
   // ── CLEANUP ──
   if (TOKEN) {
-    await request('PATCH', '/api/user/deactivate', null, AUTH);
-    console.log('🧹 Test user deactivated');
+    await test('DELETE', '/api/auth/delete-account', null, 'Delete Account', 200, AUTH);
+    console.log('🧹 Test user permanently deleted');
   }
 
   // ── SUMMARY ──
