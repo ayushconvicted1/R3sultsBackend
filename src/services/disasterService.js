@@ -203,9 +203,17 @@ async function refreshCache() {
   console.log('🔄 Refreshing disaster cache from NWS + USGS...');
 
   const [nwsData, usgsData] = await Promise.all([fetchFromNWS(), fetchFromUSGS()]);
-  const allDisasters = [...nwsData, ...usgsData];
+  const rawDisasters = [...nwsData, ...usgsData];
 
-  console.log(`  → Fetched ${nwsData.length} NWS alerts + ${usgsData.length} USGS earthquakes`);
+  // De-duplicate disasters by ID to prevent Unique Constraint (P2002) violations
+  const seenIds = new Set();
+  const allDisasters = rawDisasters.filter((d) => {
+    if (seenIds.has(d.id)) return false;
+    seenIds.add(d.id);
+    return true;
+  });
+
+  console.log(`  → Fetched ${nwsData.length} NWS alerts + ${usgsData.length} USGS earthquakes (Unique: ${allDisasters.length})`);
 
   if (allDisasters.length === 0) {
     // Still update the timestamp so we don't hammer the APIs
