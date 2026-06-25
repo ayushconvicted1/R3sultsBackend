@@ -37,7 +37,7 @@ exports.getPlans = async (req, res, next) => {
         productIds: { ios: 'com.r3sults.r3app.pro.monthly', android: 'com.r3sults.pro.monthly' },
         features: iap.getPlanFeatures('PRO'),
         featureList: [
-          'Wholesale-discounted supply pricing', 'Discounted insurance quote access',
+          'Wholesale-discounted supply pricing', 'Premium recovery support',
           'Priority in-app support', 'Advanced damage assessment tools',
           'Recovery progress dashboard', 'Expanded shelter network access',
           'Advanced preparedness planning tools', 'Family plan — up to 10 members',
@@ -50,7 +50,7 @@ exports.getPlans = async (req, res, next) => {
         productIds: { ios: 'com.r3sults.r3app.elite.monthly', android: 'com.r3sults.elite.monthly' },
         features: iap.getPlanFeatures('ELITE'),
         featureList: [
-          '24/7 dedicated concierge advisor', 'End-to-end insurance claim support',
+          '24/7 dedicated concierge advisor', 'Full recovery logistics support',
           'Managed evacuation coordination', 'Direct access to R3sults ops team',
           'Rebuild vendor coordination', 'Bespoke preparedness planning session',
           'Unlimited members + device priority',

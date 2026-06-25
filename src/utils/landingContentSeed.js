@@ -116,7 +116,7 @@ const seedData = [
       title: { prefix: 'What we are', highlight: 'building?' },
       description: 'An easy-to-use disaster management platform that provides comprehensive tools and resources to help you prepare, respond, and recover from any crisis.',
       carouselCards: [
-        { title: 'Consumer Mobile App', iconKey: 'consumer_mobile_app', bullets: ['Real-time disaster alerts powered by AI', 'Preparedness checklists and safety protocols', 'Shelter & evacuation mapping', 'Insurance guidance & emergency supplies', 'Medical & first-aid support'] },
+        { title: 'Consumer Mobile App', iconKey: 'consumer_mobile_app', bullets: ['Real-time disaster alerts powered by AI', 'Preparedness checklists and safety protocols', 'Shelter & evacuation mapping', 'Recovery guidance & emergency supplies', 'Medical & first-aid support'] },
         { title: 'Family Finder System', iconKey: 'family_finder_system', bullets: ['Real-Time Location Tracking', 'Status Sharing & Safety Check-Ins', 'Offline & Low-Network Functionality', 'Rescue Coordination Support'] },
         { title: 'Smart Safety Wearable', iconKey: 'smart_safety_wearable', bullets: ['GPS enable live tracking', 'Live Family Finder', 'Emergency SOS', 'Heart Rate, Temperature and step counts', 'Fall detection for seniors', 'Waterproof', 'Up to 7 days battery life'] },
       ],
@@ -134,7 +134,7 @@ const seedData = [
         { title: 'Disaster Alerts', descriptionLines: ['AI-powered real-time', 'notifications for imminent', 'threats in your area'], iconKey: 'disaster_alerts', image: '/disaster_alerts.jpg' },
         { title: 'Shelter Locator', descriptionLines: ['AI-powered real-time', 'find nearby safe shelters', 'with live capacity information'], iconKey: 'shelter_locator', image: '/shelter_locator.jpg' },
         { title: 'Medical Assistance', descriptionLines: ['AI-powered real-time', 'connect with emergency', 'medical services and resources'], iconKey: 'medical_assistance', image: '/medical_assistance.jpg' },
-        { title: 'Insurance & Relief', descriptionLines: ['AI-powered real-time', 'streamline insurance claims', 'and relief program access'], iconKey: 'insurance_relief', image: '/insurance_relief.jpg' },
+        { title: 'Financial Relief', descriptionLines: ['AI-powered real-time', 'streamline government aid', 'and relief program access'], iconKey: 'insurance_relief', image: '/insurance_relief.jpg' },
         { title: 'Emergency Supplies', descriptionLines: ['AI-powered real-time', 'locate stores for essential', 'supplies and provisions'], iconKey: 'emergency_supplies', image: '/emergency_supplies.jpg' },
         { title: 'Family Finder', descriptionLines: ['AI-powered real-time', 'pinpoint loved ones', 'via GPS or data'], iconKey: 'family_finder', image: '/family_finder.jpg' },
         { title: 'Damage Reporting', descriptionLines: ['AI-powered real-time', 'document and report damage', 'for expedited aid efforts'], iconKey: 'damage_reporting', image: '/damage_reporting.jpg' },
@@ -176,7 +176,7 @@ const seedData = [
       description: 'Real feedback from users and teams who rely on R3sults during critical moments.',
       cards: [
         { id: 1, name: 'Sophia Carter', role: 'Community Volunteer', avatar: '/Impact2.jpg', rating: 5, feedback: 'The alerts and family tracking features gave us confidence during a difficult storm. The platform felt reliable and fast.', videoTitle: 'How R3sults helped our neighborhood', videoSrc: '/Action.mp4', buttonLabel: 'Watch Video Feedback' },
-        { id: 2, name: 'Noah Bennett', role: 'Insurance Partner', avatar: '/Impact1.jpg', rating: 4, feedback: 'Damage reporting and communication tools reduced confusion for families and responders. Great user experience.', videoTitle: 'Field feedback from insurance team', videoSrc: '/Action.mp4', buttonLabel: 'Watch Video Feedback' },
+        { id: 2, name: 'Noah Bennett', role: 'Relief Partner', avatar: '/Impact1.jpg', rating: 4, feedback: 'Damage reporting and communication tools reduced confusion for families and responders. Great user experience.', videoTitle: 'Field feedback from relief team', videoSrc: '/Action.mp4', buttonLabel: 'Watch Video Feedback' },
         { id: 3, name: 'Mia Thompson', role: 'Relief Operations Lead', avatar: '/Impact2.jpg', rating: 5, feedback: 'The interface is modern, the information is timely, and our teams can make decisions much faster than before.', videoTitle: 'Relief operations testimonial', videoSrc: '/Action.mp4', buttonLabel: 'Watch Video Feedback' },
       ],
       modal: { closeAriaLabel: 'Close video modal', overlayCloseAriaLabel: 'Close modal overlay', fallbackText: 'Your browser does not support the video tag.' },
@@ -446,7 +446,7 @@ const seedData = [
       headingFont: "Geist",
       bodyFont: "Plus Jakarta Sans",
       headingFontUrl: "https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&display=swap",
-      bodyFontUrl: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+      bodyFontUrl: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap%22"
     }
   }
 ];

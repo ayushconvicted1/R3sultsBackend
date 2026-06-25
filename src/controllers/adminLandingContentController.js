@@ -400,7 +400,6 @@ exports.seedContent = async (req, res, next) => {
       const record = await prisma.landingContent.upsert({
         where: { page_section: { page: item.page, section: item.section } },
         update: {
-          content: item.content,
           sortOrder: item.sortOrder ?? 0,
           updatedBy: req.user?.id || null,
         },

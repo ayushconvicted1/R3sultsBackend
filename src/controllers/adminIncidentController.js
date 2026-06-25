@@ -428,9 +428,9 @@ exports.post_incidents_seed = async (req, res, next) => {
         const sampleIncidents = [
             {
                 ticketNumber: 'TKT-2024-01001',
-                type: 'insurance_support',
-                title: 'Insurance adjuster appointment',
-                description: 'Detailed description for Insurance adjuster appointment. Requires immediate attention and proper handling.',
+                type: 'relief_coordination',
+                title: 'Relief coordination meeting',
+                description: 'Detailed description for relief coordination meeting. Requires immediate attention and proper handling.',
                 priority: 'low',
                 status: 'open',
                 reportedBy: {

@@ -72,10 +72,14 @@ exports.get_volunteers = async (req, res, next) => {
     const limit = parseInt(req.query['limit'] || '50');
     const search = req.query['search'] || '';
     const availability = req.query['availability'] || '';
+    const isVerifiedFilter = req.query['isVerified'];
     
     let query = {};
     if (availability && availability !== 'all') {
       query.availability = availability;
+    }
+    if (isVerifiedFilter !== undefined) {
+      query.isVerified = isVerifiedFilter === 'true';
     }
 
     if (search) {
@@ -161,6 +165,10 @@ exports.post_volunteers = async (req, res, next) => {
   try {
     const body = req.body;
     
+    // Determine if caller is an authenticated admin
+    const isAdmin = req.user && req.userType === 'user' && 
+      ['SUPER_ADMIN', 'ADMIN'].includes((req.user.roleName || '').toUpperCase());
+
     // Check if phone or email exists
     if (body.email) {
       const existing = await prisma.volunteer.findFirst({ where: { email: body.email } });
@@ -172,7 +180,15 @@ exports.post_volunteers = async (req, res, next) => {
     }
 
     const hashedPassword = await bcrypt.hash(body.password || 'volunteer123', 10);
-    const fullName = `${body.firstName || ''} ${body.lastName || ''}`.trim() || 'Admin Volunteer';
+    const fullName = `${body.firstName || ''} ${body.lastName || ''}`.trim() || 'Volunteer';
+
+    // Admin-added volunteers are auto-verified and approved
+    // Non-admin-added volunteers are unverified and pending
+    const volunteerStatus = isAdmin 
+      ? (body.status === 'active' ? 'APPROVED' : (body.status || 'APPROVED'))
+      : 'PENDING';
+    const volunteerVerified = isAdmin ? true : false;
+    const volunteerActive = isAdmin ? (body.status !== 'inactive') : true;
 
     const volunteer = await prisma.volunteer.create({
       data: {
@@ -194,15 +210,19 @@ exports.post_volunteers = async (req, res, next) => {
         availability: body.availability || 'available',
         emergencyContactName: body.emergencyContact?.name || '',
         emergencyContactPhone: body.emergencyContact?.phone || '',
-        status: body.status === 'active' ? 'APPROVED' : (body.status || 'APPROVED'),
-        isVerified: true,
-        isActive: body.status !== 'inactive',
+        status: volunteerStatus,
+        isVerified: volunteerVerified,
+        isActive: volunteerActive,
         authProvider: 'phone',
         assignedDisasters: []
       }
     });
 
-    res.status(201).json({ success: true, data: { volunteer: mapVolunteerToDashboard(volunteer) } });
+    const message = isAdmin 
+      ? 'Volunteer added and verified successfully' 
+      : 'Volunteer added successfully. Pending admin verification.';
+
+    res.status(201).json({ success: true, message, data: { volunteer: mapVolunteerToDashboard(volunteer) } });
   } catch (error) {
     console.error('post_volunteers error:', error);
     next(error);

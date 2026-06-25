@@ -79,16 +79,51 @@ const optionalAuth = async (req, res, next) => {
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1];
       const decoded = verifyToken(token);
-      const user = await prisma.user.findUnique({ where: { id: decoded.id } });
-      if (user && user.isActive) {
-        if (user.roleId) {
-          const roleRecord = await prisma.role.findUnique({ where: { id: user.roleId } });
-          user.roleName = roleRecord ? roleRecord.name : 'GUEST';
-        } else {
-          user.roleName = 'GUEST';
+
+      if (decoded.type === 'volunteer') {
+        const volunteer = await prisma.volunteer.findUnique({ where: { id: decoded.id } });
+        if (volunteer && volunteer.isActive) {
+          req.user = volunteer;
+          req.userType = 'volunteer';
         }
-        req.user = user;
-        req.userType = 'user';
+      } else if (decoded.type === 'vendor') {
+        const vendor = await prisma.vendor.findUnique({ where: { id: decoded.id } });
+        if (vendor && vendor.isActive) {
+          req.user = vendor;
+          req.userType = 'vendor';
+        }
+      } else {
+        const userId = decoded.id || decoded.userId;
+        let user = await prisma.user.findUnique({ where: { id: userId } });
+
+        if (user && !user.isActive) {
+          // Inactive user, skip
+        } else if (!user) {
+          // User not in local DB (e.g. super_admin from admin dashboard)
+          const role = (decoded.role || 'MEMBER').toUpperCase();
+          user = {
+            id: userId,
+            email: decoded.email,
+            fullName: decoded.name || decoded.fullName || 'Unknown',
+            roleName: role,
+            isActive: true,
+          };
+          req.user = user;
+          req.userType = 'user';
+        } else {
+          if (user.roleId) {
+            const roleRecord = await prisma.role.findUnique({ where: { id: user.roleId } });
+            user.roleName = roleRecord ? roleRecord.name : 'GUEST';
+          } else {
+            user.roleName = 'GUEST';
+          }
+          req.user = user;
+          req.userType = 'user';
+        }
+
+        if (req.user && req.user.roleName) {
+          req.user.roleName = req.user.roleName.toUpperCase();
+        }
       }
     }
   } catch (error) {
