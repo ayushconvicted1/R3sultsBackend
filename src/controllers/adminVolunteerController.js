@@ -9,7 +9,7 @@ const mapVolunteerToDashboard = (v) => {
     if (v.assignedDisasters) {
       assignedDisasters = typeof v.assignedDisasters === 'string' ? JSON.parse(v.assignedDisasters) : v.assignedDisasters;
     }
-  } catch(e) {}
+  } catch (e) { }
 
   return {
     id: v.id,
@@ -34,9 +34,9 @@ const mapVolunteerToDashboard = (v) => {
       zipCode: v.pincode || '',
       country: v.country || 'USA'
     },
-    skills: v.skills ? String(v.skills).split(',').map(s=>s.trim()).filter(Boolean) : [],
+    skills: v.skills ? String(v.skills).split(',').map(s => s.trim()).filter(Boolean) : [],
     specializations: [],
-    languages: v.languages ? String(v.languages).split(',').map(s=>s.trim()).filter(Boolean) : [],
+    languages: v.languages ? String(v.languages).split(',').map(s => s.trim()).filter(Boolean) : [],
     experience: {
       years: parseInt(v.experience) || 0,
       description: v.experience || ''
@@ -72,14 +72,10 @@ exports.get_volunteers = async (req, res, next) => {
     const limit = parseInt(req.query['limit'] || '50');
     const search = req.query['search'] || '';
     const availability = req.query['availability'] || '';
-    const isVerifiedFilter = req.query['isVerified'];
-    
+
     let query = {};
     if (availability && availability !== 'all') {
       query.availability = availability;
-    }
-    if (isVerifiedFilter !== undefined) {
-      query.isVerified = isVerifiedFilter === 'true';
     }
 
     if (search) {
@@ -98,10 +94,10 @@ exports.get_volunteers = async (req, res, next) => {
       const volunteersToUpdate = await prisma.volunteer.findMany({
         where: { availability: 'on_mission' }
       });
-      
+
       const updatePromises = volunteersToUpdate.map(async (vol) => {
         let assigned = [];
-        try { assigned = typeof vol.assignedDisasters === 'string' ? JSON.parse(vol.assignedDisasters) : (vol.assignedDisasters || []); } catch(e){}
+        try { assigned = typeof vol.assignedDisasters === 'string' ? JSON.parse(vol.assignedDisasters) : (vol.assignedDisasters || []); } catch (e) { }
         const hasActiveAssignments = assigned.some(ad => {
           const toDate = new Date(ad.toDate);
           return toDate > now && (ad.status === 'assigned' || ad.status === 'active');
@@ -112,7 +108,7 @@ exports.get_volunteers = async (req, res, next) => {
         return null;
       });
       Promise.all(updatePromises).catch(err => console.error('Background status update error:', err));
-    } catch(e) {}
+    } catch (e) { }
 
     const [volunteers, total] = await Promise.all([
       prisma.volunteer.findMany({ where: query, orderBy: { createdAt: 'desc' }, skip, take: limit }),
@@ -123,7 +119,7 @@ exports.get_volunteers = async (req, res, next) => {
     const disasterIds = new Set();
     volunteers.forEach(v => {
       let ad = [];
-      try { ad = typeof v.assignedDisasters === 'string' ? JSON.parse(v.assignedDisasters) : (v.assignedDisasters||[]); } catch(e){}
+      try { ad = typeof v.assignedDisasters === 'string' ? JSON.parse(v.assignedDisasters) : (v.assignedDisasters || []); } catch (e) { }
       ad.forEach(a => { if (a.disasterId) disasterIds.add(a.disasterId); });
     });
 
@@ -164,10 +160,6 @@ exports.get_volunteers = async (req, res, next) => {
 exports.post_volunteers = async (req, res, next) => {
   try {
     const body = req.body;
-    
-    // Determine if caller is an authenticated admin
-    const isAdmin = req.user && req.userType === 'user' && 
-      ['SUPER_ADMIN', 'ADMIN'].includes((req.user.roleName || '').toUpperCase());
 
     // Check if phone or email exists
     if (body.email) {
@@ -180,15 +172,7 @@ exports.post_volunteers = async (req, res, next) => {
     }
 
     const hashedPassword = await bcrypt.hash(body.password || 'volunteer123', 10);
-    const fullName = `${body.firstName || ''} ${body.lastName || ''}`.trim() || 'Volunteer';
-
-    // Admin-added volunteers are auto-verified and approved
-    // Non-admin-added volunteers are unverified and pending
-    const volunteerStatus = isAdmin 
-      ? (body.status === 'active' ? 'APPROVED' : (body.status || 'APPROVED'))
-      : 'PENDING';
-    const volunteerVerified = isAdmin ? true : false;
-    const volunteerActive = isAdmin ? (body.status !== 'inactive') : true;
+    const fullName = `${body.firstName || ''} ${body.lastName || ''}`.trim() || 'Admin Volunteer';
 
     const volunteer = await prisma.volunteer.create({
       data: {
@@ -210,19 +194,15 @@ exports.post_volunteers = async (req, res, next) => {
         availability: body.availability || 'available',
         emergencyContactName: body.emergencyContact?.name || '',
         emergencyContactPhone: body.emergencyContact?.phone || '',
-        status: volunteerStatus,
-        isVerified: volunteerVerified,
-        isActive: volunteerActive,
+        status: body.status === 'active' ? 'APPROVED' : (body.status || 'APPROVED'),
+        isVerified: true,
+        isActive: body.status !== 'inactive',
         authProvider: 'phone',
         assignedDisasters: []
       }
     });
 
-    const message = isAdmin 
-      ? 'Volunteer added and verified successfully' 
-      : 'Volunteer added successfully. Pending admin verification.';
-
-    res.status(201).json({ success: true, message, data: { volunteer: mapVolunteerToDashboard(volunteer) } });
+    res.status(201).json({ success: true, data: { volunteer: mapVolunteerToDashboard(volunteer) } });
   } catch (error) {
     console.error('post_volunteers error:', error);
     next(error);
@@ -252,7 +232,7 @@ exports.put_volunteers = async (req, res, next) => {
     if (body.email !== undefined) dataToUpdate.email = body.email || null;
     if (body.phone !== undefined) dataToUpdate.phoneNumber = body.phone || null;
     if (body.password) dataToUpdate.passwordHash = await bcrypt.hash(body.password, 10);
-    
+
     if (body.dateOfBirth) dataToUpdate.dateOfBirth = new Date(body.dateOfBirth);
     if (body.gender) dataToUpdate.gender = body.gender;
     if (body.profileImage) dataToUpdate.profilePictureUrl = body.profileImage;
@@ -263,12 +243,12 @@ exports.put_volunteers = async (req, res, next) => {
       if (body.address.zipCode !== undefined) dataToUpdate.pincode = body.address.zipCode;
       if (body.address.country !== undefined) dataToUpdate.country = body.address.country;
     }
-    
+
     if (body.skills) dataToUpdate.skills = Array.isArray(body.skills) ? body.skills.join(', ') : body.skills;
     if (body.languages) dataToUpdate.languages = Array.isArray(body.languages) ? body.languages.join(', ') : body.languages;
     if (body.experience?.years) dataToUpdate.experience = String(body.experience.years);
     if (body.availability) dataToUpdate.availability = body.availability;
-    
+
     if (body.emergencyContact) {
       if (body.emergencyContact.name) dataToUpdate.emergencyContactName = body.emergencyContact.name;
       if (body.emergencyContact.phone) dataToUpdate.emergencyContactPhone = body.emergencyContact.phone;
@@ -317,7 +297,7 @@ exports.post_volunteers__id_assign_disaster = async (req, res, next) => {
       if (volunteer.assignedDisasters) {
         currentAssignments = typeof volunteer.assignedDisasters === 'string' ? JSON.parse(volunteer.assignedDisasters) : volunteer.assignedDisasters;
       }
-    } catch(e) {}
+    } catch (e) { }
 
     const isAlreadyAssigned = currentAssignments.some(a => a.disasterId === disasterId);
     if (isAlreadyAssigned) return res.status(400).json({ success: false, error: 'Volunteer already assigned to this disaster' });
@@ -339,7 +319,7 @@ exports.post_volunteers__id_assign_disaster = async (req, res, next) => {
     const disaster = await prisma.adminDisaster.findUnique({ where: { id: disasterId } });
     if (disaster) {
       let av = [];
-      try { av = typeof disaster.assignedVolunteers === 'string' ? JSON.parse(disaster.assignedVolunteers) : (disaster.assignedVolunteers||[]); } catch(e){}
+      try { av = typeof disaster.assignedVolunteers === 'string' ? JSON.parse(disaster.assignedVolunteers) : (disaster.assignedVolunteers || []); } catch (e) { }
       av.push({ volunteerId, assignedAt: new Date().toISOString(), status: 'assigned' });
       await prisma.adminDisaster.update({ where: { id: disasterId }, data: { assignedVolunteers: av } });
     }
@@ -355,7 +335,7 @@ exports.delete_volunteers__id_assign_disaster = async (req, res, next) => {
 exports.post_volunteers_mobile_login = async (req, res, next) => {
   try {
     const { volunteerId, email, password, isPasswordless } = req.body;
-    
+
     if (!isPasswordless && !password) {
       return res.status(400).json({ success: false, error: 'Password is required' });
     }
@@ -364,7 +344,7 @@ exports.post_volunteers_mobile_login = async (req, res, next) => {
     }
 
     let volunteer = null;
-    
+
     if (volunteerId) {
       // Clean volunteerId, it could be the full ID or short ID
       volunteer = await prisma.volunteer.findFirst({
@@ -395,7 +375,7 @@ exports.post_volunteers_mobile_login = async (req, res, next) => {
       isPasswordValid = true;
     } else {
       if (!volunteer.passwordHash) {
-         return res.status(401).json({ success: false, error: 'Account has no password set' });
+        return res.status(401).json({ success: false, error: 'Account has no password set' });
       }
       isPasswordValid = await bcrypt.compare(String(password), volunteer.passwordHash);
     }

@@ -59,6 +59,8 @@ const options = {
       { name: 'Newsletter', description: 'Newsletter subscription & email broadcasting' },
       { name: 'Admin Landing Content', description: 'Admin CMS endpoints for landing page content (CRUD, seed, media upload)' },
       { name: 'Landing Content (Public)', description: 'Public read-only endpoints for landing page content' },
+      { name: 'Admin Home Page Content', description: 'Admin CMS endpoints for the redesigned home page (CRUD, seed, partial update, media upload)' },
+      { name: 'Home Page Content (Public)', description: 'Public read-only endpoints for the redesigned home page content' },
     ],
   },
   apis: ['./src/routes/*.js'],

@@ -178,7 +178,7 @@ exports.approveVolunteer = async (req, res, next) => {
     const { notes } = req.body;
     const volunteer = await prisma.volunteer.update({
       where: { id: req.params.volunteerId },
-      data: { status: 'APPROVED', isVerified: true, verifiedBy: req.user.id, verifiedAt: new Date(), notes: notes || undefined },
+      data: { status: 'APPROVED', verifiedBy: req.user.id, verifiedAt: new Date(), notes: notes || undefined },
     });
     res.json({ success: true, message: 'Volunteer approved successfully', data: { volunteer: sanitize(volunteer) } });
   } catch (error) { next(error); }

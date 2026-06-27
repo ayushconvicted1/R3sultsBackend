@@ -50,9 +50,6 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/user', require('./routes/user'));
 app.use('/api/group', require('./routes/group'));
-// Mount volunteer-mgmt BEFORE /api/admin so its optionalAuth POST isn't blocked
-// by the admin router's router.use(authenticate)
-app.use('/api/admin/volunteer-mgmt', require('./routes/adminVolunteer'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/admin/volunteers', require('./routes/adminVolunteers'));
 app.use('/api/volunteer', require('./routes/volunteer'));
@@ -87,6 +84,7 @@ app.use('/api/admin/incidents', require('./routes/adminIncident'));
 app.use('/api/admin/inventory', require('./routes/adminInventory'));
 app.use('/api/admin/damage-reports', require('./routes/adminDamageReport'));
 app.use('/api/admin/adjusters', require('./routes/adminAdjuster'));
+app.use('/api/admin/volunteer-mgmt', require('./routes/adminVolunteer'));
 app.use('/api/admin/volunteer-teams', require('./routes/adminVolunteerTeam'));
 app.use('/api/admin/products', require('./routes/adminProduct'));
 app.use('/api/admin/orders', require('./routes/adminOrder'));
@@ -99,6 +97,8 @@ app.use('/api/admin/mobile', require('./routes/adminMobile'));
 app.use('/api/admin/broadcast', require('./routes/broadcast'));
 app.use('/api/admin/landing-content', require('./routes/adminLandingContent'));
 app.use('/api/landing-content', require('./routes/landingPublic'));
+app.use('/api/admin/home-page-content', require('./routes/adminHomePageContent'));
+app.use('/api/home-page-content', require('./routes/homePagePublic'));
 app.use('/api/subscription', require('./routes/subscription'));
 
 // ─── Dev Endpoints ───
