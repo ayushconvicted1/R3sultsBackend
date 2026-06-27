@@ -9,7 +9,10 @@
     "postinstall": "prisma generate",
     "build": "echo 'Build complete'",
     "prisma:generate": "prisma generate",
-    "prisma:pull": "prisma db pull"
+    "prisma:pull": "prisma db pull",
+    "db:push": "prisma db push",
+    "db:seed": "node seed-all-direct.js",
+    "db:seed:landing": "node seed-new-landing.js"
   },
   "keywords": [
     "r3sults",
