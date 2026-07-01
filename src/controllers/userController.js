@@ -1,7 +1,9 @@
 const bcrypt = require('bcryptjs');
 const prisma = require('../lib/prisma');
 const fcm = require('../services/fcm');
-const { UserStatus } = require('@prisma/client'); // Assuming generated client has it, or just use strings if Enum issues.
+const { generateOTP, isOTPExpired } = require('../utils/otp');
+const { sendEmail } = require('../utils/email');
+const { UserStatus } = require('@prisma/client');
 
 // Helper to calculate distance in meters
 function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
@@ -279,19 +281,83 @@ exports.changePassword = async (req, res, next) => {
   }
 };
 
-exports.updateEmail = async (req, res, next) => {
+exports.sendEmailOtp = async (req, res, next) => {
   try {
     const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required' });
+    }
+
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing && existing.id !== req.user.id) {
       return res.status(409).json({ success: false, message: 'Email already in use' });
     }
 
-    const user = await prisma.user.update({
+    const otp = generateOTP();
+    const otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+    await prisma.user.update({
       where: { id: req.user.id },
-      data: { email, emailVerified: false },
+      data: { otpCode: otp, otpExpiresAt, otpAttempts: 0 },
     });
-    res.json({ success: true, message: 'Email updated successfully. Please verify your new email.', data: { user: sanitizeUser(user) } });
+
+    const emailHtml = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2>Verify Your Email Address</h2>
+        <p>You have requested to update your email address. Please use the following OTP to verify your new email:</p>
+        <h3 style="background: #f4f4f4; padding: 10px; text-align: center; letter-spacing: 2px;">${otp}</h3>
+        <p>This code will expire in 5 minutes.</p>
+        <p>If you did not request this change, please ignore this email.</p>
+      </div>
+    `;
+
+    await sendEmail({
+      to: email,
+      subject: 'Verify Your New Email Address - R3sults',
+      html: emailHtml,
+    });
+
+    res.json({ success: true, message: 'OTP sent to email successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.updateEmail = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+    
+    if (!otp) {
+      return res.status(400).json({ success: false, message: 'OTP is required' });
+    }
+
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing && existing.id !== req.user.id) {
+      return res.status(409).json({ success: false, message: 'Email already in use' });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    
+    if (!user.otpCode || isOTPExpired(user.otpExpiresAt) || user.otpCode !== otp) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { otpAttempts: { increment: 1 } },
+      });
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { 
+        email, 
+        emailVerified: true,
+        otpCode: null,
+        otpExpiresAt: null,
+        otpAttempts: 0,
+      },
+    });
+
+    res.json({ success: true, message: 'Email updated and verified successfully.', data: { user: sanitizeUser(updatedUser) } });
   } catch (error) {
     next(error);
   }

@@ -243,8 +243,13 @@ router.patch('/change-password', validate([
  *     responses:
  *       200: { description: Email updated }
  */
+router.post('/email/send-otp', validate([
+  body('email').isEmail().withMessage('Valid email is required'),
+]), user.sendEmailOtp);
+
 router.patch('/email', validate([
   body('email').isEmail().withMessage('Valid email is required'),
+  body('otp').notEmpty().withMessage('OTP is required'),
 ]), user.updateEmail);
 
 /**
