@@ -74,8 +74,6 @@ async function main() {
     console.log('✓ Created new theme fonts section.');
   }
 
-  // 2. Perform targeted updates for insurance references on existing sections
-  console.log('\nScanning existing sections to update insurance references...');
   const records = await prisma.landingContent.findMany();
   let updatedRecordsCount = 0;
 
