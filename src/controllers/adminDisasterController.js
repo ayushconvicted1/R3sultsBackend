@@ -23,33 +23,39 @@ exports.get_disasters = async (req, res, next) => {
         const type = req.query['type'] || '';
         const status = req.query['status'] || '';
         const severity = req.query['severity'] || '';
-        // Build query
-        const query = {};
+        
+        // Build query for AdminDisaster
+        const query1 = {};
         if (search) {
-            query.$or = [
-                { title: { $regex: search, $options: 'i' } },
-                { description: { $regex: search, $options: 'i' } },
-                { 'location.address': { $regex: search, $options: 'i' } },
-                { 'location.city': { $regex: search, $options: 'i' } },
-                { 'location.state': { $regex: search, $options: 'i' } },
+            query1.OR = [
+                { title: { contains: search, mode: 'insensitive' } },
+                { description: { contains: search, mode: 'insensitive' } },
             ];
         }
-        if (type) {
-            query.type = type;
+        if (type) query1.type = type;
+        if (status) query1.status = status;
+        if (severity) query1.severity = severity;
+
+        // Build query for live Disaster
+        const query2 = { isActive: true };
+        if (search) {
+            query2.OR = [
+                { title: { contains: search, mode: 'insensitive' } },
+                { description: { contains: search, mode: 'insensitive' } },
+            ];
         }
-        if (status) {
-            query.status = status;
-        }
-        if (severity) {
-            query.severity = severity;
-        }
-        // Calculate skip
-        const skip = (page - 1) * limit;
-        // Fetch disasters from database
-        const disastersRaw = await prisma.adminDisaster.findMany({ where: query });
-        const total = await prisma.adminDisaster.count({ where: query });
+        if (type) query2.type = type;
+        if (status) query2.status = status;
+        if (severity) query2.severity = severity;
+
+        // Fetch all from both tables
+        const [disastersRaw, liveDisastersRaw] = await Promise.all([
+            prisma.adminDisaster.findMany({ where: query1 }),
+            prisma.disaster.findMany({ where: query2 })
+        ]);
+
         // Manually populate volunteer for assignedVolunteers since it's a string reference
-        const disasters = await Promise.all(disastersRaw.map(async (disaster) => {
+        const adminDisasters = await Promise.all(disastersRaw.map(async (disaster) => {
             if (disaster.assignedVolunteers && Array.isArray(disaster.assignedVolunteers)) {
                 disaster.assignedVolunteers = await Promise.all(disaster.assignedVolunteers.map(async (av) => {
                     let volId = typeof av.volunteerId === 'string' ? av.volunteerId : (av.volunteerId?.id || '');
@@ -80,24 +86,21 @@ exports.get_disasters = async (req, res, next) => {
             }
             return disaster;
         }));
-        // Transform disasters to match expected format
-        const transformedDisasters = disasters.map((disaster) => {
-            // Handle coordinates - can be GeoJSON [lng, lat] or {lat, lng}
+
+        // Transform admin disasters
+        const transformedAdminDisasters = adminDisasters.map((disaster) => {
             let coordinates;
             if (disaster.location?.coordinates) {
                 if (Array.isArray(disaster.location.coordinates)) {
-                    // GeoJSON format: [longitude, latitude]
                     coordinates = {
                         lat: disaster.location.coordinates[1],
                         lng: disaster.location.coordinates[0],
                     };
                 }
                 else if (typeof disaster.location.coordinates === 'object') {
-                    // Already in {lat, lng} format
                     coordinates = disaster.location.coordinates;
                 }
             }
-            // Transform assignedVolunteers
             let assignedVolunteers = [];
             if (disaster.assignedVolunteers && Array.isArray(disaster.assignedVolunteers)) {
                 assignedVolunteers = disaster.assignedVolunteers.map((av) => {
@@ -124,7 +127,7 @@ exports.get_disasters = async (req, res, next) => {
                     };
                 });
             }
-            return { id: disaster.id.toString(),
+            return {
                 id: disaster.id.toString(),
                 title: disaster.title,
                 description: disaster.description,
@@ -148,10 +151,46 @@ exports.get_disasters = async (req, res, next) => {
                 updatedAt: disaster.updatedAt,
             };
         });
+
+        // Transform live disasters
+        const transformedLiveDisasters = liveDisastersRaw.map(d => ({
+            id: d.id,
+            title: d.title,
+            description: d.description,
+            type: d.type,
+            severity: d.severity,
+            status: d.status,
+            location: {
+                address: d.title,
+                city: '',
+                state: '',
+                country: 'USA',
+                coordinates: { lat: d.lat, lng: d.lng },
+            },
+            affectedArea: d.magnitude || 0,
+            estimatedAffectedPeople: 0,
+            assignedVolunteers: [],
+            reportedBy: 'System Sync',
+            reportedAt: d.fetchedAt,
+            startedAt: d.date,
+            createdAt: d.fetchedAt,
+            updatedAt: d.lastSeenAt,
+            isLiveApi: true
+        }));
+
+        // Combine and sort by startedAt (newest first)
+        const combined = [...transformedAdminDisasters, ...transformedLiveDisasters];
+        combined.sort((a, b) => new Date(b.startedAt || 0).getTime() - new Date(a.startedAt || 0).getTime());
+
+        // Pagination
+        const total = combined.length;
+        const skip = (page - 1) * limit;
+        const paginated = combined.slice(skip, skip + limit);
+
         return res.json({
             success: true,
             data: {
-                disasters: transformedDisasters,
+                disasters: paginated,
                 pagination: {
                     page,
                     limit,
@@ -163,7 +202,7 @@ exports.get_disasters = async (req, res, next) => {
     }
     catch (error) {
         console.error('Get disasters error:', error);
-        return res.status().json();
+        return res.status(500).json({ success: false, message: 'Server error' });
     }
 
   } catch (error) {
