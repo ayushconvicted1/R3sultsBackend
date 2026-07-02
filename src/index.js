@@ -127,6 +127,25 @@ app.listen(PORT, () => {
   console.log(`🚀 R3sults API server running on port ${PORT}`);
   console.log(`📋 Health check: http://localhost:${PORT}/api/health`);
   console.log(`📖 API Docs: http://localhost:${PORT}/api-docs`);
+
+  // ─── Disaster Sync: Initial + 24h recurring ───
+  const { syncDisasters } = require('./services/disasterService');
+  const SYNC_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+  // Run initial sync on boot (non-blocking)
+  syncDisasters()
+    .then(() => console.log('🌍 Initial disaster sync complete'))
+    .catch((err) => console.error('🌍 Initial disaster sync failed:', err.message));
+
+  // Schedule recurring sync every 24 hours
+  setInterval(() => {
+    syncDisasters()
+      .then(() => console.log('🌍 Scheduled disaster sync complete'))
+      .catch((err) => console.error('🌍 Scheduled disaster sync failed:', err.message));
+  }, SYNC_INTERVAL_MS);
+
+  console.log('🌍 Disaster sync scheduled every 24 hours');
 });
 
 module.exports = app;
+
