@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'results-jwt-secret-key-2024';
 
+const { generateDisasterId } = require('../services/disasterService');
+
 // ─── disasters ───
 exports.get_disasters = async (req, res, next) => {
   try {
@@ -183,7 +185,9 @@ exports.post_disasters = async (req, res, next) => {
         }
         const body = req.body;
         const { title, description, type, severity, status, location, affectedArea, affectedPopulation, startedAt, } = body;
+        const disasterId = generateDisasterId(type || 'other');
         const disaster = await prisma.adminDisaster.create({ data: {
+            id: disasterId,
             title,
             description,
             type,
