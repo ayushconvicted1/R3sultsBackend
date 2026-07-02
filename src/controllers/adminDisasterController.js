@@ -25,37 +25,30 @@ exports.get_disasters = async (req, res, next) => {
         const severity = req.query['severity'] || '';
         
         // Build query for AdminDisaster
-        const query1 = {};
+        const query = {};
         if (search) {
-            query1.OR = [
+            query.OR = [
                 { title: { contains: search, mode: 'insensitive' } },
                 { description: { contains: search, mode: 'insensitive' } },
             ];
         }
-        if (type) query1.type = type;
-        if (status) query1.status = status;
-        if (severity) query1.severity = severity;
+        if (type) query.type = type;
+        if (status) query.status = status;
+        if (severity) query.severity = severity;
 
-        // Build query for live Disaster
-        const query2 = { isActive: true };
-        if (search) {
-            query2.OR = [
-                { title: { contains: search, mode: 'insensitive' } },
-                { description: { contains: search, mode: 'insensitive' } },
-            ];
-        }
-        if (type) query2.type = type;
-        if (status) query2.status = status;
-        if (severity) query2.severity = severity;
+        const skip = (page - 1) * limit;
 
-        // Fetch all from both tables
-        const [disastersRaw, liveDisastersRaw] = await Promise.all([
-            prisma.adminDisaster.findMany({ where: query1 }),
-            prisma.disaster.findMany({ where: query2 })
-        ]);
+        // Fetch from adminDisaster only
+        const disastersRaw = await prisma.adminDisaster.findMany({ 
+            where: query,
+            skip,
+            take: limit,
+            orderBy: { createdAt: 'desc' }
+        });
+        const total = await prisma.adminDisaster.count({ where: query });
 
         // Manually populate volunteer for assignedVolunteers since it's a string reference
-        const adminDisasters = await Promise.all(disastersRaw.map(async (disaster) => {
+        const disasters = await Promise.all(disastersRaw.map(async (disaster) => {
             if (disaster.assignedVolunteers && Array.isArray(disaster.assignedVolunteers)) {
                 disaster.assignedVolunteers = await Promise.all(disaster.assignedVolunteers.map(async (av) => {
                     let volId = typeof av.volunteerId === 'string' ? av.volunteerId : (av.volunteerId?.id || '');
@@ -88,7 +81,7 @@ exports.get_disasters = async (req, res, next) => {
         }));
 
         // Transform admin disasters
-        const transformedAdminDisasters = adminDisasters.map((disaster) => {
+        const transformedDisasters = disasters.map((disaster) => {
             let coordinates;
             if (disaster.location?.coordinates) {
                 if (Array.isArray(disaster.location.coordinates)) {
@@ -152,45 +145,10 @@ exports.get_disasters = async (req, res, next) => {
             };
         });
 
-        // Transform live disasters
-        const transformedLiveDisasters = liveDisastersRaw.map(d => ({
-            id: d.id,
-            title: d.title,
-            description: d.description,
-            type: d.type,
-            severity: d.severity,
-            status: d.status,
-            location: {
-                address: d.title,
-                city: '',
-                state: '',
-                country: 'USA',
-                coordinates: { lat: d.lat, lng: d.lng },
-            },
-            affectedArea: d.magnitude || 0,
-            estimatedAffectedPeople: 0,
-            assignedVolunteers: [],
-            reportedBy: 'System Sync',
-            reportedAt: d.fetchedAt,
-            startedAt: d.date,
-            createdAt: d.fetchedAt,
-            updatedAt: d.lastSeenAt,
-            isLiveApi: true
-        }));
-
-        // Combine and sort by startedAt (newest first)
-        const combined = [...transformedAdminDisasters, ...transformedLiveDisasters];
-        combined.sort((a, b) => new Date(b.startedAt || 0).getTime() - new Date(a.startedAt || 0).getTime());
-
-        // Pagination
-        const total = combined.length;
-        const skip = (page - 1) * limit;
-        const paginated = combined.slice(skip, skip + limit);
-
         return res.json({
             success: true,
             data: {
-                disasters: paginated,
+                disasters: transformedDisasters,
                 pagination: {
                     page,
                     limit,
